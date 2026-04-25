@@ -41,5 +41,6 @@ def format_amount(ws, row_errors, col):
         parsed = _normalize_amount(str(cell.value))
         if parsed is not None:
             cell.value = parsed
+            cell.number_format = "#,##0"
         else:
             row_errors.setdefault(row, {})[col] = str(cell.value)
