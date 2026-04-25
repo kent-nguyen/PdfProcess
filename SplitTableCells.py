@@ -1,0 +1,125 @@
+import cv2
+import numpy as np
+import os
+import argparse
+
+
+def find_line_positions(line_img, axis, gap_threshold=10):
+    """Project a binary line image onto one axis and return the center of each detected line."""
+    projection = np.sum(line_img, axis=1 if axis == "h" else 0)
+    max_val = np.max(projection)
+    if max_val == 0:
+        return []
+
+    indices = np.where(projection > max_val * 0.3)[0]
+    if len(indices) == 0:
+        return []
+
+    groups, current = [], [indices[0]]
+    for idx in indices[1:]:
+        if idx - current[-1] <= gap_threshold:
+            current.append(idx)
+        else:
+            groups.append(int(np.mean(current)))
+            current = [idx]
+    groups.append(int(np.mean(current)))
+    return groups
+
+
+def split_table_cells(image_path, output_dir, padding=2, debug=False):
+    img = cv2.imread(image_path)
+    if img is None:
+        print(f"Cannot read: {image_path}")
+        return 0
+
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+    h, w = gray.shape
+
+    # Invert so dark lines become white for morphological detection
+    _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
+
+    # Horizontal lines: erode with a wide kernel, then dilate to fill gaps
+    h_len = max(w // 15, 30)
+    h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (h_len, 1))
+    horizontal = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, h_kernel, iterations=2)
+    horizontal = cv2.dilate(horizontal, np.ones((3, 1), np.uint8), iterations=1)
+
+    # Vertical lines: erode with a tall kernel, then dilate to fill gaps
+    v_len = max(h // 15, 30)
+    v_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, v_len))
+    vertical = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, v_kernel, iterations=2)
+    vertical = cv2.dilate(vertical, np.ones((1, 3), np.uint8), iterations=1)
+
+    if debug:
+        os.makedirs(output_dir, exist_ok=True)
+        cv2.imwrite(os.path.join(output_dir, "_debug_horizontal.png"), horizontal)
+        cv2.imwrite(os.path.join(output_dir, "_debug_vertical.png"), vertical)
+        cv2.imwrite(os.path.join(output_dir, "_debug_grid.png"), cv2.add(horizontal, vertical))
+
+    h_pos = find_line_positions(horizontal, "h")
+    v_pos = find_line_positions(vertical, "v")
+
+    print(f"  Horizontal lines: {len(h_pos)} -> y={h_pos}")
+    print(f"  Vertical lines:   {len(v_pos)} -> x={v_pos}")
+
+    if len(h_pos) < 2 or len(v_pos) < 2:
+        print("  Not enough lines detected to form cells.")
+        return 0
+
+    os.makedirs(output_dir, exist_ok=True)
+
+    count = 0
+    # len(h_pos) - 2: the last interval (between the table's bottom border and the
+    # paper edge) is footer text, not a data row — skip it by stopping one earlier.
+    for row_idx in range(len(h_pos) - 2):
+        y1 = h_pos[row_idx] + padding
+        y2 = h_pos[row_idx + 1] - padding
+        if y2 <= y1:
+            continue
+        for col_idx in range(len(v_pos) - 1):
+            x1 = v_pos[col_idx] + padding
+            x2 = v_pos[col_idx + 1] - padding
+            if x2 <= x1:
+                continue
+            cell = img[y1:y2, x1:x2]
+            if cell.size == 0:
+                continue
+            cv2.imwrite(os.path.join(output_dir, f"row{row_idx:03d}_col{col_idx:03d}.png"), cell)
+            count += 1
+
+    return count
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Detect table grid lines and split into cell images.")
+    parser.add_argument("--input", default="Pages",
+                        help="Folder containing page sub-folders from ConvertToImages.py (default: Pages)")
+    parser.add_argument("--page", type=int, default=None,
+                        help="Process only this page number; omit to process all pages")
+    parser.add_argument("--padding", type=int, default=2,
+                        help="Pixels to trim from each cell edge to remove line artifacts (default: 2)")
+    parser.add_argument("--debug", action="store_true",
+                        help="Save intermediate line-detection images alongside cells")
+    args = parser.parse_args()
+
+    if args.page:
+        pages = [args.page]
+    else:
+        pages = sorted(
+            int(p) for p in os.listdir(args.input)
+            if os.path.isdir(os.path.join(args.input, p)) and p.isdigit()
+        )
+
+    for page_num in pages:
+        img_path = os.path.join(args.input, str(page_num), f"{page_num}.png")
+        if not os.path.exists(img_path):
+            print(f"Image not found: {img_path}, skipping.")
+            continue
+        out_dir = os.path.join(args.input, str(page_num), "Cells")
+        print(f"Processing page {page_num}...")
+        count = split_table_cells(img_path, out_dir, padding=args.padding, debug=args.debug)
+        print(f"  Extracted {count} cells -> {out_dir}")
+
+
+if __name__ == "__main__":
+    main()
