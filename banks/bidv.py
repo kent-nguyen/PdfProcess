@@ -1,5 +1,6 @@
 from functools import partial
 from libs.fixers.stt_fixer import fix_stt
+from libs.fixers.balance_fixer import fix_balance
 from libs.formatters.stt_formatter import format_stt
 from libs.formatters.datetime_formatter import format_trans_date
 from libs.formatters.date_formatter import format_date
@@ -13,6 +14,7 @@ DATE_COL = 3        # Column C
 INT_COL_4 = 4      # Column D
 DEBIT_COL = 5      # Column E
 CREDIT_COL = 6     # Column F
+BALANCE_COL = 7    # Column G
 
 FORMATTERS = [
     partial(format_stt, col=STT_COL),
@@ -21,10 +23,12 @@ FORMATTERS = [
     partial(format_int, col=INT_COL_4),
     partial(format_amount, col=DEBIT_COL),
     partial(format_amount, col=CREDIT_COL),
+    partial(format_amount, col=BALANCE_COL),
 ]
 
 FIXERS = [
     partial(fix_stt, col=STT_COL),
+    partial(fix_balance, debit_col=DEBIT_COL, credit_col=CREDIT_COL, col=BALANCE_COL),
 ]
 
 # Per-column OCR allowlists (0-based column index from cell image filenames).
@@ -36,4 +40,5 @@ COLUMN_ALLOWLISTS = {
     3: '0123456789',        # Column D — integers only
     4: '0123456789,.',      # Debit amount
     5: '0123456789,.',      # Credit amount
+    6: '0123456789,.',      # Balance amount
 }

@@ -22,21 +22,60 @@ def refine_page(raw_path, out_path, formatters, fixers):
     for fixer in fixers:
         fixer(ws, row_fixes, row_errors)
 
-    # Append Fixed and Notes columns after the last data column
+    # Append Fixed / Error / Notes columns after the last data column
     fixed_col = ws.max_column + 1
-    notes_col = ws.max_column + 2
+    error_col = ws.max_column + 2
+    notes_col = ws.max_column + 3
     ws.cell(row=1, column=fixed_col).value = "Fixed"
+    ws.cell(row=1, column=error_col).value = "Error"
     ws.cell(row=1, column=notes_col).value = "Notes"
 
     for row in range(2, ws.max_row + 1):
+        notes = []
         if row in row_fixes:
             ws.cell(row=row, column=fixed_col).value = True
-            ws.cell(row=row, column=notes_col).value = "; ".join(row_fixes[row])
+            notes.extend(row_fixes[row])
+        if row in row_errors:
+            ws.cell(row=row, column=error_col).value = True
+            notes.extend(row_errors[row].values())
+        if notes:
+            ws.cell(row=row, column=notes_col).value = "; ".join(str(n) for n in notes)
 
     wb.save(out_path)
 
     fixed_count = len(row_fixes)
-    print(f"  {fixed_count} row(s) fixed -> {out_path}")
+    error_count = len(row_errors)
+    print(f"  {fixed_count} row(s) fixed, {error_count} row(s) with errors -> {out_path}")
+
+    return row_errors, row_fixes
+
+
+def _print_summary(page_results):
+    """Print a consolidated error/fix summary across all processed pages."""
+    pages_with_issues = {p: (errs, fixes) for p, (errs, fixes) in page_results.items() if errs or fixes}
+    if not pages_with_issues:
+        print("\nNo errors found across all pages.")
+        return
+
+    total_error_rows = sum(len(errs) for errs, _ in pages_with_issues.values())
+    print(f"\n{'='*50}")
+    print(f"Error Summary — {total_error_rows} error row(s) across {len(pages_with_issues)} page(s)")
+    print(f"{'='*50}")
+
+    for page_num in sorted(pages_with_issues):
+        row_errors, row_fixes = pages_with_issues[page_num]
+        all_rows = sorted(set(row_errors) | set(row_fixes))
+        print(f"\nPage {page_num}: {len(all_rows)} row(s)")
+        for row in all_rows:
+            notes = row_fixes.get(row, [])
+            bad_cols = row_errors.get(row, {})
+            if notes:
+                for note in notes:
+                    print(f"  Row {row}: {note}")
+            if bad_cols:
+                for col, original in bad_cols.items():
+                    if not notes:  # format error with no fixer note
+                        print(f"  Row {row}, col {col}: format error (raw: {original!r})")
 
 
 def main():
@@ -62,6 +101,8 @@ def main():
             if os.path.isdir(os.path.join(args.input, p)) and p.isdigit()
         )
 
+    page_results = {}  # {page_num: (row_errors, row_fixes)}
+
     for page_num in pages:
         page_dir = os.path.join(args.input, str(page_num))
         raw_path = find_raw_file(page_dir, page_num)
@@ -70,7 +111,9 @@ def main():
             continue
         out_path = os.path.join(page_dir, f"{page_num}.xlsx")
         print(f"Processing page {page_num} ({os.path.basename(raw_path)})...")
-        refine_page(raw_path, out_path, formatters, fixers)
+        page_results[page_num] = refine_page(raw_path, out_path, formatters, fixers)
+
+    _print_summary(page_results)
 
 
 if __name__ == "__main__":
