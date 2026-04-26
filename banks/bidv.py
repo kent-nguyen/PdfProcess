@@ -8,6 +8,7 @@ from libs.formatters.int_formatter import format_int
 from libs.formatters.amount_formatter import format_amount
 from libs.formatters.concat_formatter import format_concat
 from libs.formatters.description_formatter import format_description
+from libs.corrections.bank_names import BANK_NAMES
 
 # Column indices (1-based) for BIDV statement format
 STT_COL = 1        # Column A
@@ -21,6 +22,8 @@ SEQ_COL = 8        # Column H — Sequence No
 TELLER_COL = 9     # Column I — Teller ID
 BRANCH_COL = 10    # Column J — Branch ID
 DESC_COL = 11      # Column K — Txn Description
+CORR_ACC_COL = 12  # Column L — Correspondent Account No
+CORR_BANK_COL = 14 # Column N — Correspondent Bank Name
 
 _ALNUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
 
@@ -57,9 +60,11 @@ FORMATTERS = [
     partial(format_amount, col=CREDIT_COL),
     partial(format_amount, col=BALANCE_COL),
     partial(format_concat, col=SEQ_COL),
-    partial(format_concat, col=TELLER_COL),
+    partial(format_concat, col=TELLER_COL, as_text=True),
     partial(format_concat, col=BRANCH_COL),
-    partial(format_description, col=DESC_COL, corrections=BIDV_DESC_CORRECTIONS),
+    partial(format_description, col=DESC_COL, corrections=BIDV_DESC_CORRECTIONS + BANK_NAMES),
+    partial(format_concat, col=CORR_ACC_COL, as_text=True),
+    partial(format_description, col=CORR_BANK_COL, corrections=BIDV_DESC_CORRECTIONS + BANK_NAMES),
 ]
 
 FIXERS = [
@@ -81,4 +86,5 @@ COLUMN_ALLOWLISTS = {
     8: _ALNUM,                # Teller ID — alphanumeric
     9: '0123456789',          # Branch ID — digits only
     10: _ALNUM + '/: ',       # Txn Description — alphanumeric + / : space
+    11: '0123456789',          # Correspondent Account No — digits only
 }
