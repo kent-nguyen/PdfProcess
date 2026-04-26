@@ -6,6 +6,7 @@ from libs.formatters.datetime_formatter import format_trans_date
 from libs.formatters.date_formatter import format_date
 from libs.formatters.int_formatter import format_int
 from libs.formatters.amount_formatter import format_amount
+from libs.formatters.concat_formatter import format_concat
 
 # Column indices (1-based) for BIDV statement format
 STT_COL = 1        # Column A
@@ -15,6 +16,9 @@ INT_COL_4 = 4      # Column D
 DEBIT_COL = 5      # Column E
 CREDIT_COL = 6     # Column F
 BALANCE_COL = 7    # Column G
+SEQ_COL = 8        # Column H — Sequence No
+TELLER_COL = 9     # Column I — Teller ID
+BRANCH_COL = 10    # Column J — Branch ID
 
 FORMATTERS = [
     partial(format_stt, col=STT_COL),
@@ -24,6 +28,9 @@ FORMATTERS = [
     partial(format_amount, col=DEBIT_COL),
     partial(format_amount, col=CREDIT_COL),
     partial(format_amount, col=BALANCE_COL),
+    partial(format_concat, col=SEQ_COL),
+    partial(format_concat, col=TELLER_COL),
+    partial(format_concat, col=BRANCH_COL),
 ]
 
 FIXERS = [
@@ -41,4 +48,7 @@ COLUMN_ALLOWLISTS = {
     4: '0123456789,.',      # Debit amount
     5: '0123456789,.',      # Credit amount
     6: '0123456789,.',      # Balance amount
+    7: '0123456789',        # Sequence No — digits only
+    8: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',  # Teller ID
+    9: '0123456789',        # Branch ID — digits only
 }
