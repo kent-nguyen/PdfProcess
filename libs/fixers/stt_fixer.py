@@ -35,20 +35,19 @@ def fix_stt(ws, row_fixes, row_errors, col):
             known[row] = v
 
     empty = [r for r in range(DATA_START, ws.max_row + 1) if r not in known]
-    if not empty:
-        return
 
-    groups = []
-    group = [empty[0]]
-    for r in empty[1:]:
-        if r == group[-1] + 1:
-            group.append(r)
-        else:
-            groups.append(group)
-            group = [r]
-    groups.append(group)
+    if empty:
+        groups = []
+        group = [empty[0]]
+        for r in empty[1:]:
+            if r == group[-1] + 1:
+                group.append(r)
+            else:
+                groups.append(group)
+                group = [r]
+        groups.append(group)
 
-    for group in groups:
+    for group in (groups if empty else []):
         first, last = group[0], group[-1]
         prev_val = known.get(first - 1)
         next_val = known.get(last + 1)
@@ -81,3 +80,23 @@ def fix_stt(ws, row_fixes, row_errors, col):
                 row_fixes.setdefault(row, []).append(
                     f"STT: was {origin}, no adjacent values to interpolate — manual review needed"
                 )
+
+    # Second pass: verify sequence continuity on all rows (catches valid-integer
+    # misreads like 8274 → 8214 that the formatter cannot detect).
+    # Only corrects when both neighbours agree on the expected value, to avoid
+    # cascading false fixes when a wrong value happens to have a consistent next.
+    for row in range(DATA_START, ws.max_row + 1):
+        v = _int_or_none(ws.cell(row=row, column=col).value)
+        if v is None:
+            continue
+        prev_v = _int_or_none(ws.cell(row=row - 1, column=col).value) if row > DATA_START else None
+        if prev_v is None or v == prev_v + 1:
+            continue
+        expected = prev_v + 1
+        next_v = _int_or_none(ws.cell(row=row + 1, column=col).value) if row < ws.max_row else None
+        if next_v is not None and next_v != expected + 1:
+            continue  # next neighbour disagrees — leave for manual review
+        ws.cell(row=row, column=col).value = expected
+        row_fixes.setdefault(row, []).append(
+            f"STT: was {v}, corrected to {expected} (sequence mismatch after {prev_v})"
+        )
