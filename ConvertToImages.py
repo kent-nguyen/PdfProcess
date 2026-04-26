@@ -1,4 +1,5 @@
 from pdf2image import convert_from_path
+from PIL import ImageFilter, ImageOps
 import os
 import argparse
 from libs.page_range import parse_pages
@@ -31,5 +32,8 @@ else:
 for page_num, page in pages_to_save:
     folder = os.path.join("Pages", str(page_num))
     os.makedirs(folder, exist_ok=True)
+    page = page.convert("L")                          # grayscale — B&W doc needs no colour
+    page = ImageOps.autocontrast(page, cutoff=1)      # stretch histogram, ignore 1% outliers
+    page = page.filter(ImageFilter.UnsharpMask(radius=1, percent=150, threshold=3))
     page.save(os.path.join(folder, f"{page_num}.png"), "PNG")
     print(f"Saved page {page_num}")

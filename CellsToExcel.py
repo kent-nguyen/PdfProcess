@@ -47,6 +47,11 @@ def cells_to_excel(page_dir, reader, column_allowlists):
         ws.cell(row=row + 1, column=col + 1, value=text)
     print(f"  Row {max_row}/{max_row} — done")
 
+    # Drop the first column if every cell in it is blank (spurious border line)
+    first_col_values = [ws.cell(row=r, column=1).value for r in range(1, ws.max_row + 1)]
+    if all(v is None or str(v).strip() == "" for v in first_col_values):
+        ws.delete_cols(1)
+
     page_name = os.path.basename(page_dir)
     out_path = os.path.join(page_dir, f"raw_{page_name}.xlsx")
     wb.save(out_path)

@@ -11,7 +11,7 @@ def find_line_positions(line_img, axis, gap_threshold=10):
     if max_val == 0:
         return []
 
-    indices = np.where(projection > max_val * 0.3)[0]
+    indices = np.where(projection > max_val * 0.1)[0]
     if len(indices) == 0:
         return []
 
@@ -39,15 +39,15 @@ def split_table_cells(image_path, output_dir, padding=2, debug=False):
     _, thresh = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY_INV + cv2.THRESH_OTSU)
 
     # Horizontal lines: erode with a wide kernel, then dilate to fill gaps
-    h_len = max(w // 15, 30)
+    h_len = max(w // 25, 20)
     h_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (h_len, 1))
-    horizontal = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, h_kernel, iterations=2)
+    horizontal = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, h_kernel, iterations=1)
     horizontal = cv2.dilate(horizontal, np.ones((3, 1), np.uint8), iterations=1)
 
     # Vertical lines: erode with a tall kernel, then dilate to fill gaps
-    v_len = max(h // 15, 30)
+    v_len = max(h // 25, 20)
     v_kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (1, v_len))
-    vertical = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, v_kernel, iterations=2)
+    vertical = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, v_kernel, iterations=1)
     vertical = cv2.dilate(vertical, np.ones((1, 3), np.uint8), iterations=1)
 
     if debug:
