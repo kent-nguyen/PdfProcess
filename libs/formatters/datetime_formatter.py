@@ -42,14 +42,25 @@ def _extract_time(s):
 
     - 8 chars: one separator misread as another char (e.g. '8', '5', '.', ' ').
       Use positional extraction — ignore whatever sits at index 2 and 5.
-    - 7 chars: one separator missing entirely (e.g. '1544:06', '15:4406').
+    - 7 chars, 6 digits: one separator missing entirely (e.g. '1544:06', '15:4406').
       Extract the 6 digits and regroup as HH MM SS.
+    - 7 chars, 7 digits: second colon was misread as a digit (e.g. '2122452' → '21:22:52').
+      Ignore char at index 4 (the misread colon) and extract positionally.
     - 6 chars: both separators missing (e.g. '154406').
       Extract the 6 digits and regroup as HH MM SS.
     """
     if len(s) == 8:
         hh, mi, ss = s[0:2], s[3:5], s[6:8]
-    elif len(s) in (6, 7):
+    elif len(s) == 7:
+        digits = "".join(c for c in s if c.isdigit())
+        if len(digits) == 6:
+            hh, mi, ss = digits[0:2], digits[2:4], digits[4:6]
+        elif len(digits) == 7:
+            # All digits — char at index 4 is a misread colon, ignore it
+            hh, mi, ss = s[0:2], s[2:4], s[5:7]
+        else:
+            return None
+    elif len(s) == 6:
         digits = "".join(c for c in s if c.isdigit())
         if len(digits) != 6:
             return None
