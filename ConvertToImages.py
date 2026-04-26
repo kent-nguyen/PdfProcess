@@ -36,4 +36,4 @@ for page_num, page in pages_to_save:
     page = ImageOps.autocontrast(page, cutoff=1)      # stretch histogram, ignore 1% outliers
     page = page.filter(ImageFilter.UnsharpMask(radius=1, percent=150, threshold=3))
     page.save(os.path.join(folder, f"{page_num}.png"), "PNG")
-    print(f"Saved page {page_num}")
+    print(f"Đã lưu trang {page_num}")

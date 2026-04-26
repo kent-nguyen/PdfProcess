@@ -29,7 +29,7 @@ def find_line_positions(line_img, axis, gap_threshold=10):
 def split_table_cells(image_path, output_dir, padding=2, debug=False):
     img = cv2.imread(image_path)
     if img is None:
-        print(f"Cannot read: {image_path}")
+        print(f"Không thể đọc: {image_path}")
         return 0
 
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -59,11 +59,11 @@ def split_table_cells(image_path, output_dir, padding=2, debug=False):
     h_pos = find_line_positions(horizontal, "h")
     v_pos = find_line_positions(vertical, "v")
 
-    print(f"  Horizontal lines: {len(h_pos)} -> y={h_pos}")
-    print(f"  Vertical lines:   {len(v_pos)} -> x={v_pos}")
+    print(f"  Đường ngang: {len(h_pos)} -> y={h_pos}")
+    print(f"  Đường dọc:        {len(v_pos)} -> x={v_pos}")
 
     if len(h_pos) < 2 or len(v_pos) < 2:
-        print("  Not enough lines detected to form cells.")
+        print("  Không phát hiện đủ đường kẻ để tạo thành ô.")
         return 0
 
     os.makedirs(output_dir, exist_ok=True)
@@ -113,12 +113,12 @@ def main():
     for page_num in pages:
         img_path = os.path.join(args.input, str(page_num), f"{page_num}.png")
         if not os.path.exists(img_path):
-            print(f"Image not found: {img_path}, skipping.")
+            print(f"Không tìm thấy ảnh: {img_path}, bỏ qua.")
             continue
         out_dir = os.path.join(args.input, str(page_num), "Cells")
-        print(f"Processing page {page_num}...")
+        print(f"Đang xử lý trang {page_num}...")
         count = split_table_cells(img_path, out_dir, padding=args.padding, debug=args.debug)
-        print(f"  Extracted {count} cells -> {out_dir}")
+        print(f"  Đã trích xuất {count} ô -> {out_dir}")
 
 
 if __name__ == "__main__":

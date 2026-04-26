@@ -69,18 +69,18 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col):
             corrected, pos, digit = fix
             ws.cell(row=row, column=col).value = corrected
             row_errors.setdefault(row, {})[col] = (
-                f"Balance mismatch: expected {expected:,}, OCR read {balance:,}"
+                f"Số dư không khớp: kỳ vọng {expected:,}, OCR đọc được {balance:,}"
             )
             row_fixes.setdefault(row, []).append(
-                f"Balance: removed extra digit '{digit}' at position {pos} "
-                f"(OCR read {balance:,}, corrected to {corrected:,})"
+                f"Số dư: đã xóa chữ số thừa '{digit}' tại vị trí {pos} "
+                f"(OCR đọc được {balance:,}, đã sửa thành {corrected:,})"
             )
         else:
             ws.cell(row=row, column=col).value = expected
             row_errors.setdefault(row, {})[col] = (
-                f"Balance mismatch: expected {expected:,}, OCR read {balance:,}"
+                f"Số dư không khớp: kỳ vọng {expected:,}, OCR đọc được {balance:,}"
             )
             row_fixes.setdefault(row, []).append(
-                f"Recover balance by overwriting with expected value {expected:,} "
-                f"(OCR read {balance:,}, corrected to {expected:,})"
+                f"Khôi phục số dư bằng cách ghi đè giá trị kỳ vọng {expected:,} "
+                f"(OCR đọc được {balance:,}, đã sửa thành {expected:,})"
             )

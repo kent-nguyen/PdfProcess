@@ -58,9 +58,9 @@ def fix_stt(ws, row_fixes, row_errors, col):
                 ws.cell(row=row, column=col).value = val
                 bad_val = row_errors.get(row, {}).get(col)
                 origin = f"bad value '{bad_val}'" if bad_val else "empty"
-                note = f"STT: was {origin}, filled as {val} (incremented from {prev_val})"
+                note = f"STT: giá trị là {origin}, đã điền là {val} (tăng dần từ {prev_val})"
                 if next_val is not None and filled[-1] + 1 != next_val:
-                    note += f" [WARNING: sequence break — next known is {next_val}]"
+                    note += f" [CẢNH BÁO: chuỗi bị đứt — giá trị tiếp theo đã biết là {next_val}]"
                 row_fixes.setdefault(row, []).append(note)
 
         elif next_val is not None:
@@ -70,7 +70,7 @@ def fix_stt(ws, row_fixes, row_errors, col):
                 bad_val = row_errors.get(row, {}).get(col)
                 origin = f"bad value '{bad_val}'" if bad_val else "empty"
                 row_fixes.setdefault(row, []).append(
-                    f"STT: was {origin}, filled as {val} (decremented from {next_val})"
+                    f"STT: giá trị là {origin}, đã điền là {val} (giảm dần từ {next_val})"
                 )
 
         else:
@@ -78,7 +78,7 @@ def fix_stt(ws, row_fixes, row_errors, col):
                 bad_val = row_errors.get(row, {}).get(col)
                 origin = f"bad value '{bad_val}'" if bad_val else "empty"
                 row_fixes.setdefault(row, []).append(
-                    f"STT: was {origin}, no adjacent values to interpolate — manual review needed"
+                    f"STT: giá trị là {origin}, không có giá trị liền kề để nội suy — cần kiểm tra thủ công"
                 )
 
     # Second pass: verify sequence continuity on all rows (catches valid-integer
@@ -98,5 +98,5 @@ def fix_stt(ws, row_fixes, row_errors, col):
             continue  # next neighbour disagrees — leave for manual review
         ws.cell(row=row, column=col).value = expected
         row_fixes.setdefault(row, []).append(
-            f"STT: was {v}, corrected to {expected} (sequence mismatch after {prev_v})"
+            f"STT: giá trị là {v}, đã sửa thành {expected} (sai thứ tự sau {prev_v})"
         )

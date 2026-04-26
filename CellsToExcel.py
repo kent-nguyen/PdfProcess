@@ -19,7 +19,7 @@ def ocr_cell(reader, image_path, allowlist=None):
 def cells_to_excel(page_dir, reader, column_allowlists):
     cells_dir = os.path.join(page_dir, "Cells")
     if not os.path.isdir(cells_dir):
-        print(f"  No Cells folder in {page_dir}, skipping.")
+        print(f"  Không tìm thấy thư mục Cells trong {page_dir}, bỏ qua.")
         return
 
     pattern = re.compile(r"row(\d+)_col(\d+)\.png$")
@@ -30,7 +30,7 @@ def cells_to_excel(page_dir, reader, column_allowlists):
             cell_files[(int(m.group(1)), int(m.group(2)))] = os.path.join(cells_dir, fname)
 
     if not cell_files:
-        print("  No cell images found.")
+        print("  Không tìm thấy ảnh ô nào.")
         return
 
     wb = Workbook()
@@ -41,11 +41,11 @@ def cells_to_excel(page_dir, reader, column_allowlists):
     for (row, col) in sorted(cell_files):
         if row != current_row:
             current_row = row
-            print(f"  Row {row}/{max_row}", end="\r", flush=True)
+            print(f"  Dòng {row}/{max_row}", end="\r", flush=True)
         allowlist = column_allowlists.get(col) if row > 0 else None
         text = ocr_cell(reader, cell_files[(row, col)], allowlist=allowlist)
         ws.cell(row=row + 1, column=col + 1, value=text)
-    print(f"  Row {max_row}/{max_row} — done")
+    print(f"  Dòng {max_row}/{max_row} — hoàn thành")
 
     # Drop the first column if every cell in it is blank (spurious border line)
     first_col_values = [ws.cell(row=r, column=1).value for r in range(1, ws.max_row + 1)]
@@ -55,7 +55,7 @@ def cells_to_excel(page_dir, reader, column_allowlists):
     page_name = os.path.basename(page_dir)
     out_path = os.path.join(page_dir, f"raw_{page_name}.xlsx")
     wb.save(out_path)
-    print(f"  Saved -> {out_path}")
+    print(f"  Đã lưu -> {out_path}")
 
 
 def main():
@@ -70,7 +70,7 @@ def main():
 
     bank_module = importlib.import_module(f"banks.{args.bank}")
     column_allowlists = getattr(bank_module, "COLUMN_ALLOWLISTS", {})
-    print(f"Bank: {args.bank} — allowlists defined for columns: {sorted(column_allowlists)}")
+    print(f"Ngân hàng: {args.bank} — danh sách cho phép được định nghĩa cho các cột: {sorted(column_allowlists)}")
 
     reader = easyocr.Reader(["en"])
 
@@ -84,7 +84,7 @@ def main():
 
     for page_num in pages:
         page_dir = os.path.join(args.input, str(page_num))
-        print(f"Processing page {page_num}...")
+        print(f"Đang xử lý trang {page_num}...")
         cells_to_excel(page_dir, reader, column_allowlists)
 
 

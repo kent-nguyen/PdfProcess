@@ -45,7 +45,7 @@ def refine_page(raw_path, out_path, formatters, fixers):
 
     fixed_count = len(row_fixes)
     error_count = len(row_errors)
-    print(f"  {fixed_count} row(s) fixed, {error_count} row(s) with errors -> {out_path}")
+    print(f"  {fixed_count} dòng đã sửa, {error_count} dòng có lỗi -> {out_path}")
 
     return row_errors, row_fixes
 
@@ -54,28 +54,28 @@ def _print_summary(page_results):
     """Print a consolidated error/fix summary across all processed pages."""
     pages_with_issues = {p: (errs, fixes) for p, (errs, fixes) in page_results.items() if errs or fixes}
     if not pages_with_issues:
-        print("\nNo errors found across all pages.")
+        print("\nKhông tìm thấy lỗi nào trên tất cả các trang.")
         return
 
     total_error_rows = sum(len(errs) for errs, _ in pages_with_issues.values())
     print(f"\n{'='*50}")
-    print(f"Error Summary — {total_error_rows} error row(s) across {len(pages_with_issues)} page(s)")
+    print(f"Tóm tắt lỗi — {total_error_rows} dòng lỗi trên {len(pages_with_issues)} trang")
     print(f"{'='*50}")
 
     for page_num in sorted(pages_with_issues):
         row_errors, row_fixes = pages_with_issues[page_num]
         all_rows = sorted(set(row_errors) | set(row_fixes))
-        print(f"\nPage {page_num}: {len(all_rows)} row(s)")
+        print(f"\nTrang {page_num}: {len(all_rows)} dòng")
         for row in all_rows:
             notes = row_fixes.get(row, [])
             bad_cols = row_errors.get(row, {})
             if notes:
                 for note in notes:
-                    print(f"  Row {row}: {note}")
+                    print(f"  Dòng {row}: {note}")
             if bad_cols:
                 for col, original in bad_cols.items():
                     if not notes:  # format error with no fixer note
-                        print(f"  Row {row}, col {col}: format error (raw: {original!r})")
+                        print(f"  Dòng {row}, cột {col}: lỗi định dạng (giá trị gốc: {original!r})")
 
 
 def main():
@@ -91,7 +91,7 @@ def main():
     fixer_module = importlib.import_module(f"banks.{args.bank}")
     formatters = getattr(fixer_module, "FORMATTERS", [])
     fixers = getattr(fixer_module, "FIXERS", [])
-    print(f"Bank: {args.bank} — {len(formatters)} formatter(s), {len(fixers)} fixer(s) loaded")
+    print(f"Ngân hàng: {args.bank} — đã tải {len(formatters)} bộ định dạng, {len(fixers)} bộ sửa lỗi")
 
     if args.page:
         pages = [args.page]
@@ -107,10 +107,10 @@ def main():
         page_dir = os.path.join(args.input, str(page_num))
         raw_path = find_raw_file(page_dir, page_num)
         if not raw_path:
-            print(f"No raw Excel found in {page_dir}, skipping.")
+            print(f"Không tìm thấy file Excel thô trong {page_dir}, bỏ qua.")
             continue
         out_path = os.path.join(page_dir, f"{page_num}.xlsx")
-        print(f"Processing page {page_num} ({os.path.basename(raw_path)})...")
+        print(f"Đang xử lý trang {page_num} ({os.path.basename(raw_path)})...")
         page_results[page_num] = refine_page(raw_path, out_path, formatters, fixers)
 
     _print_summary(page_results)

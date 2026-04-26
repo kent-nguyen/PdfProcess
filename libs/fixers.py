@@ -59,9 +59,9 @@ def fix_stt(ws, row_fixes, col):
             filled = [prev_val + i + 1 for i in range(len(group))]
             for row, val in zip(group, filled):
                 ws.cell(row=row, column=col).value = val
-                note = f"STT: was empty, filled as {val} (incremented from {prev_val})"
+                note = f"STT: ô trống, đã điền là {val} (tăng dần từ {prev_val})"
                 if next_val is not None and filled[-1] + 1 != next_val:
-                    note += f" [WARNING: sequence break — next known is {next_val}]"
+                    note += f" [CẢNH BÁO: chuỗi bị đứt — giá trị tiếp theo đã biết là {next_val}]"
                 row_fixes.setdefault(row, []).append(note)
 
         elif next_val is not None:
@@ -69,11 +69,11 @@ def fix_stt(ws, row_fixes, col):
             for row, val in zip(group, filled):
                 ws.cell(row=row, column=col).value = val
                 row_fixes.setdefault(row, []).append(
-                    f"STT: was empty, filled as {val} (decremented from {next_val})"
+                    f"STT: ô trống, đã điền là {val} (giảm dần từ {next_val})"
                 )
 
         else:
             for row in group:
                 row_fixes.setdefault(row, []).append(
-                    "STT: was empty, no adjacent values to interpolate — manual review needed"
+                    "STT: ô trống, không có giá trị liền kề để nội suy — cần kiểm tra thủ công"
                 )
