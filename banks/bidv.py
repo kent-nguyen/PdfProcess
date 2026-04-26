@@ -7,6 +7,7 @@ from libs.formatters.date_formatter import format_date
 from libs.formatters.int_formatter import format_int
 from libs.formatters.amount_formatter import format_amount
 from libs.formatters.concat_formatter import format_concat
+from libs.formatters.description_formatter import format_description
 
 # Column indices (1-based) for BIDV statement format
 STT_COL = 1        # Column A
@@ -19,6 +20,33 @@ BALANCE_COL = 7    # Column G
 SEQ_COL = 8        # Column H — Sequence No
 TELLER_COL = 9     # Column I — Teller ID
 BRANCH_COL = 10    # Column J — Branch ID
+DESC_COL = 11      # Column K — Txn Description
+
+_ALNUM = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'
+
+# Common OCR misreadings in BIDV transaction descriptions.
+# Longer/more specific patterns are listed first to avoid partial conflicts.
+BIDV_DESC_CORRECTIONS = [
+    # MBTKThe misreadings
+    ("MB TKTne", "MBTKThe"),
+    ("MBTKThc",  "MBTKThe"),
+    ("MBTKne",   "MBTKThe"),
+    ("MbTKInc",  "MBTKThe"),
+    ("MBTKTne",  "MBTKThe"),
+    ("MBIKIhe",  "MBTKThe"),
+    ("MBTKTnc",  "MBTKThe"),
+    # Tfr A/c misreadings
+    ("Tfr Nc",   "Tfr A/c"),
+    ("Tir Nc",   "Tfr A/c"),
+    # TKThe misreadings
+    ("TKTne",    "TKThe"),
+    ("Tkine",    "TKThe"),
+    ("Tkinc",    "TKThe"),
+    ("IkInc",    "TKThe"),
+    ("TKThc",    "TKThe"),
+    ("TKTnc",    "TKThe"),
+    ("TKIne",    "TKThe"),
+]
 
 FORMATTERS = [
     partial(format_stt, col=STT_COL),
@@ -31,6 +59,7 @@ FORMATTERS = [
     partial(format_concat, col=SEQ_COL),
     partial(format_concat, col=TELLER_COL),
     partial(format_concat, col=BRANCH_COL),
+    partial(format_description, col=DESC_COL, corrections=BIDV_DESC_CORRECTIONS),
 ]
 
 FIXERS = [
@@ -41,14 +70,15 @@ FIXERS = [
 # Per-column OCR allowlists (0-based column index from cell image filenames).
 # Columns not listed here use unrestricted OCR.
 COLUMN_ALLOWLISTS = {
-    0: '0123456789',        # STT (No) — integers only
-    1: '0123456789/: ',     # Trans Date — digits, slash, colon, space
-    2: '0123456789/ ',      # Date — digits, slash, space
-    3: '0123456789',        # Column D — integers only
-    4: '0123456789,.',      # Debit amount
-    5: '0123456789,.',      # Credit amount
-    6: '0123456789,.',      # Balance amount
-    7: '0123456789',        # Sequence No — digits only
-    8: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz',  # Teller ID
-    9: '0123456789',        # Branch ID — digits only
+    0: '0123456789',          # STT (No) — integers only
+    1: '0123456789/: ',       # Trans Date — digits, slash, colon, space
+    2: '0123456789/ ',        # Date — digits, slash, space
+    3: '0123456789',          # Column D — integers only
+    4: '0123456789,.',        # Debit amount
+    5: '0123456789,.',        # Credit amount
+    6: '0123456789,.',        # Balance amount
+    7: '0123456789',          # Sequence No — digits only
+    8: _ALNUM,                # Teller ID — alphanumeric
+    9: '0123456789',          # Branch ID — digits only
+    10: _ALNUM + '/: ',       # Txn Description — alphanumeric + / : space
 }
