@@ -6,9 +6,11 @@ The trailing "00" decimal cents are the one reliable anchor.
 
 Algorithm:
   1. Trim leading/trailing whitespace.
-  2. Strip the trailing decimal zeros: scan from the end collecting "0"s; if 1 or 2
-     zeros are found and the character before them is a separator (" ", ".", ","),
-     remove that separator + zeros (handles ".00", " 00", ",0", " 0", etc.).
+  2. Strip the trailing decimal digits: scan from the end collecting digits; if 1 or 2
+     digits are found and the character before them is a separator (" ", ".", ","),
+     remove that separator + digits (handles ".00", ".07", " 00", ",0", " 0", etc.).
+     Valid thousand groups always have 3 digits, so 1-2 trailing digits after a
+     separator are unambiguously a decimal suffix — real or OCR-misread.
   3. Fix two-zero thousand groups: any "00" sitting between two separators
      (e.g. ",00," or ",00.") has a dropped zero — restore it to "000".
   4. Fix four-digit groups: a separator misread as a digit gets appended to a
@@ -21,13 +23,15 @@ import re
 
 
 def _strip_decimal(s):
-    """Remove a trailing decimal suffix of 1-2 zeros preceded by a separator."""
+    """Remove a trailing decimal suffix of 1-2 digits preceded by a separator.
+    Valid thousand groups always have 3 digits, so 1-2 trailing digits after a
+    separator can only be a decimal part (real .00 or OCR-misread .07 etc.)."""
     i = len(s)
-    while i > 0 and s[i - 1] == '0':
+    while i > 0 and s[i - 1].isdigit():
         i -= 1
-    zero_count = len(s) - i
-    if zero_count in (1, 2) and i > 0 and s[i - 1] in (' ', '.', ','):
-        s = s[:i - 1].rstrip()   # also drop any trailing space left after removal
+    digit_count = len(s) - i
+    if digit_count in (1, 2) and i > 0 and s[i - 1] in (' ', '.', ','):
+        s = s[:i - 1].rstrip()
     return s
 
 
@@ -37,7 +41,7 @@ def _normalize_amount(raw):
     s = _strip_decimal(s)         # step 2: remove trailing decimal zeros
     before_fixes = s
     # Step 3: restore a dropped zero in any thousand group that OCR read as "00".
-    s = re.sub(r'(?<=[,\.])00(?=[,\.])', '000', s)
+    s = re.sub(r'(?<=[,\.])00(?=[,\.]|$)', '000', s)
     # Step 4: remove a spurious extra digit from any 4-digit group — the last
     # digit is a separator (. or ,) that OCR misread as a numeral.
     s = re.sub(r'(?<=[,\.])(\d{4})(?=[,\.]|$)', lambda m: m.group(1)[:3], s)
