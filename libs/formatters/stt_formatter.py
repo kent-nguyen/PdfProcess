@@ -19,7 +19,14 @@ def format_stt(ws, row_errors, col, **_):
         cell = ws.cell(row=row, column=col)
         if cell.value is None:
             continue
+        parts = str(cell.value).strip().split()
+        if len(parts) >= 2 and all(p.isdigit() for p in parts):
+            raise ValueError(
+                f"STT cột {col}, dòng {row}: phát hiện hai số '{cell.value}' — "
+                f"SplitTableCells có thể đã bỏ sót một đường kẻ ngang. "
+                f"Hãy kiểm tra và sửa file raw thủ công."
+            )
         try:
-            cell.value = int(str(cell.value).strip())
+            cell.value = int(parts[0])
         except (ValueError, TypeError):
             row_errors.setdefault(row, {})[col] = str(cell.value)
