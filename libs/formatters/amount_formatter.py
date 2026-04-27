@@ -5,24 +5,36 @@ OCR misreads dots and commas interchangeably, so separators cannot be trusted.
 The trailing "00" decimal cents are the one reliable anchor.
 
 Algorithm:
-  1. Join all whitespace-separated tokens (reunites tokens split across lines).
-  2. Strip the trailing "00" (the fixed decimal cents).
+  1. Trim leading/trailing whitespace.
+  2. Strip the trailing decimal zeros: scan from the end collecting "0"s; if 1 or 2
+     zeros are found and the character before them is a separator (" ", ".", ","),
+     remove that separator + zeros (handles ".00", " 00", ",0", " 0", etc.).
   3. Fix two-zero thousand groups: any "00" sitting between two separators
      (e.g. ",00," or ",00.") has a dropped zero — restore it to "000".
   4. Fix four-digit groups: a separator misread as a digit gets appended to a
      thousand group, making it 4 digits (e.g. ",0003" where "3" is a misread ".").
      Remove the extra digit by keeping only the first three (e.g. "0003" → "000").
-  5. Remove every remaining dot and comma (thousands/decimal separators).
+  5. Remove every remaining dot, comma, and space (thousands/decimal separators).
   6. Parse the remaining digit string as int.
 """
 import re
 
 
+def _strip_decimal(s):
+    """Remove a trailing decimal suffix of 1-2 zeros preceded by a separator."""
+    i = len(s)
+    while i > 0 and s[i - 1] == '0':
+        i -= 1
+    zero_count = len(s) - i
+    if zero_count in (1, 2) and i > 0 and s[i - 1] in (' ', '.', ','):
+        s = s[:i - 1].rstrip()   # also drop any trailing space left after removal
+    return s
+
+
 def _normalize_amount(raw):
     """Return (int_value, fix_note_or_None). fix_note is set when a correction was made."""
-    s = "".join(raw.strip().split())  # reunite tokens, drop all spaces
-    if s.endswith("00"):
-        s = s[:-2]                    # strip fixed decimal cents
+    s = raw.strip()               # step 1: trim only
+    s = _strip_decimal(s)         # step 2: remove trailing decimal zeros
     before_fixes = s
     # Step 3: restore a dropped zero in any thousand group that OCR read as "00".
     s = re.sub(r'(?<=[,\.])00(?=[,\.])', '000', s)
@@ -30,7 +42,7 @@ def _normalize_amount(raw):
     # digit is a separator (. or ,) that OCR misread as a numeral.
     s = re.sub(r'(?<=[,\.])(\d{4})(?=[,\.]|$)', lambda m: m.group(1)[:3], s)
     fix_note = f"Số tiền: đã sửa nhóm chữ số sai (OCR: {raw.strip()!r})" if s != before_fixes else None
-    s = s.replace(".", "").replace(",", "")  # drop all separators
+    s = s.replace(".", "").replace(",", "").replace(" ", "")  # drop all separators
 
     if not s or not s.isdigit():
         return None, None
