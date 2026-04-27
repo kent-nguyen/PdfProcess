@@ -67,6 +67,16 @@ def cells_to_excel(page_dir, reader, column_allowlists):
         ws.cell(row=row + 1, column=logical_col + 1, value=text)
     print(f"  Dòng {max_row}/{max_row} — hoàn thành")
 
+    # Remove rows where the first 4 data columns are all empty (skip header row 1).
+    rows_to_delete = []
+    for ws_row in ws.iter_rows(min_row=2):
+        if all((ws_row[c].value or "").strip() == "" for c in range(min(4, len(ws_row)))):
+            rows_to_delete.append(ws_row[0].row)
+    for r in reversed(rows_to_delete):
+        ws.delete_rows(r)
+    if rows_to_delete:
+        print(f"  Đã xoá {len(rows_to_delete)} dòng trống: {rows_to_delete}")
+
     page_name = os.path.basename(page_dir)
     out_path = os.path.join(page_dir, f"raw_{page_name}.xlsx")
     wb.save(out_path)
