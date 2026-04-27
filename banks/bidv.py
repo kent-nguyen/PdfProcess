@@ -59,7 +59,7 @@ FORMATTERS = [
     partial(format_amount, col=DEBIT_COL),
     partial(format_amount, col=CREDIT_COL),
     partial(format_amount, col=BALANCE_COL),
-    partial(format_concat, col=SEQ_COL),
+    partial(format_concat, col=SEQ_COL, as_text=True),
     partial(format_concat, col=TELLER_COL, as_text=True),
     partial(format_concat, col=BRANCH_COL),
     partial(format_description, col=DESC_COL, corrections=BIDV_DESC_CORRECTIONS + BANK_NAMES),
