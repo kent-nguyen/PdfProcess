@@ -69,6 +69,10 @@ def _extract_time(s):
         return None
 
     if hh.isdigit() and mi.isdigit() and ss.isdigit():
+        # Clamp out-of-range OCR values to the nearest valid boundary
+        hh = str(min(int(hh), 23)).zfill(2)
+        mi = str(min(int(mi), 59)).zfill(2)
+        ss = str(min(int(ss), 59)).zfill(2)
         return hh, mi, ss
     return None
 
