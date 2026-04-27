@@ -89,6 +89,16 @@ def _prev_page_last_balance(raw_path, col):
         return None
 
 
+def _page_number(raw_path):
+    """Return the page number derived from raw_path's parent directory, or None."""
+    if raw_path is None:
+        return None
+    try:
+        return int(os.path.basename(os.path.dirname(os.path.abspath(raw_path))))
+    except ValueError:
+        return None
+
+
 def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=None):
     """
     Args:
@@ -99,6 +109,7 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=
                     the first data row is validated against the previous page.
     """
     DATA_START = 2
+    page = _page_number(raw_path)
 
     # --- First data row: validate against previous page's last balance ---
     if raw_path is not None:
@@ -117,6 +128,11 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=
                 if (debit is None or isinstance(debit, int)) and \
                    (credit is None or isinstance(credit, int)):
                     expected = prev_balance - (debit or 0) + (credit or 0)
+                    if expected < 0:
+                        raise ValueError(
+                            f"Số dư kỳ vọng âm ({expected:,}) tại trang {page}, dòng {row}. "
+                            "Vui lòng kiểm tra và sửa thủ công."
+                        )
                     if expected != balance:
                         _apply_balance_fix(ws, row, col, balance, expected, row_errors, row_fixes)
 
@@ -142,6 +158,11 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=
             continue
 
         expected = prev_balance - (debit or 0) + (credit or 0)
+        if expected < 0:
+            raise ValueError(
+                f"Số dư kỳ vọng âm ({expected:,}) tại trang {page}, dòng {row}. "
+                "Vui lòng kiểm tra và sửa thủ công."
+            )
         if expected == balance:
             continue
 
