@@ -68,10 +68,18 @@ def split_table_cells(image_path, output_dir, padding=2, debug=False):
 
     os.makedirs(output_dir, exist_ok=True)
 
+    # Decide how many row intervals to process.
+    # If the last interval is much taller than the median data row it is footer/empty
+    # space below the table border — skip it. Otherwise include it as a data row.
+    row_heights = [h_pos[i + 1] - h_pos[i] for i in range(len(h_pos) - 1)]
+    median_height = float(np.median(row_heights[:-1])) if len(row_heights) > 1 else row_heights[0]
+    if row_heights[-1] > median_height * 1.8:
+        n_rows = len(h_pos) - 2   # last interval is footer space, skip it
+    else:
+        n_rows = len(h_pos) - 1   # last interval is a real data row, keep it
+
     count = 0
-    # len(h_pos) - 2: the last interval (between the table's bottom border and the
-    # paper edge) is footer text, not a data row — skip it by stopping one earlier.
-    for row_idx in range(len(h_pos) - 2):
+    for row_idx in range(n_rows):
         y1 = h_pos[row_idx] + padding
         y2 = h_pos[row_idx + 1] - padding
         if y2 <= y1:
