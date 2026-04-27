@@ -26,6 +26,22 @@ def find_line_positions(line_img, axis, gap_threshold=10):
     return groups
 
 
+def _enhance_cell(cell_bgr):
+    """
+    Sharpen and upscale a cell crop for better OCR accuracy.
+
+    Steps:
+      1. Grayscale
+      2. 2× upscale with cubic interpolation so EasyOCR sees larger glyphs
+      3. Unsharp mask to sharpen edges without distorting stroke widths
+    """
+    gray = cv2.cvtColor(cell_bgr, cv2.COLOR_BGR2GRAY)
+    h, w = gray.shape
+    up = cv2.resize(gray, (w * 2, h * 2), interpolation=cv2.INTER_CUBIC)
+    blurred = cv2.GaussianBlur(up, (0, 0), sigmaX=1.0)
+    return cv2.addWeighted(up, 1.5, blurred, -0.5, 0)
+
+
 def split_table_cells(image_path, output_dir, padding=2, debug=False):
     img = cv2.imread(image_path)
     if img is None:
@@ -92,7 +108,7 @@ def split_table_cells(image_path, output_dir, padding=2, debug=False):
             cell = img[y1:y2, x1:x2]
             if cell.size == 0:
                 continue
-            cv2.imwrite(os.path.join(output_dir, f"row{row_idx:03d}_col{col_idx:03d}.png"), cell)
+            cv2.imwrite(os.path.join(output_dir, f"row{row_idx:03d}_col{col_idx:03d}.png"), _enhance_cell(cell))
             count += 1
 
     return count
