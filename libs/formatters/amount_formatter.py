@@ -1,32 +1,22 @@
 """
 Formatter for VND currency amount columns.
 
-Raw OCR values use commas as thousands separators and end with ".00",
-e.g. "1,234,567.00". The ".00" suffix may be split to a new line and OCR'd
-as a separate token (e.g. "1,234,567 00"). OCR may also read only one decimal
-digit (".0" instead of ".00").
+OCR misreads dots and commas interchangeably, so separators cannot be trusted.
+The trailing "00" decimal cents are the one reliable anchor.
 
 Algorithm:
-  1. Join all whitespace-separated tokens (reunites split decimal tokens).
-  2. Remove commas (thousands separators).
-  3. If a decimal point is present, keep only the integer part (handles both
-     ".00" and ".0" OCR variants).
-  4. Otherwise assume the last two characters are the space-joined "00" decimal
-     digits and strip them — unless the result would be empty (bare "0").
-  5. Parse the remaining digit string as int.
+  1. Join all whitespace-separated tokens (reunites tokens split across lines).
+  2. Strip the trailing "00" (the fixed decimal cents).
+  3. Remove every remaining dot and comma (thousands/decimal separators).
+  4. Parse the remaining digit string as int.
 """
 
 
 def _normalize_amount(raw):
     s = "".join(raw.strip().split())  # reunite tokens, drop all spaces
-    s = s.replace(",", "")            # remove thousands separators
-    if "." in s:
-        s = s.split(".")[0]           # strip decimal portion (.00 or .0)
-    else:
-        # space-joined decimal digits appended at end — strip trailing "00"
-        stripped = s[:-2]
-        if stripped:                  # keep bare "0" as-is
-            s = stripped
+    if s.endswith("00"):
+        s = s[:-2]                    # strip fixed decimal cents
+    s = s.replace(".", "").replace(",", "")  # drop all separators
 
     if not s or not s.isdigit():
         return None
