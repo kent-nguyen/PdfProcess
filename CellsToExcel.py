@@ -13,6 +13,9 @@ def ocr_cell(reader, image_path, allowlist=None):
     result = reader.readtext(image_path, **kwargs)
     if not result:
         return ""
+    # Sort top-to-bottom then left-to-right so multi-line numbers (e.g. "2,300,000,000." / "00")
+    # are joined in reading order rather than arbitrary detection order.
+    result = sorted(result, key=lambda r: (r[0][0][1], r[0][0][0]))
     return " ".join(item[1] for item in result).strip()
 
 
