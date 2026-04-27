@@ -1,8 +1,9 @@
 """
 Combine per-page Excel files into a single Output.xlsx.
 
-Pages/1/1.xlsx  — copied as-is (header + data)
-Pages/N/N.xlsx  — data rows only (header skipped)
+Pages/1/1.xlsx  — copied as-is (header + data), then a "Page" column is inserted
+                  as the first column and filled with the page number.
+Pages/N/N.xlsx  — data rows only (header skipped), page number prepended.
 
 Usage:
     python CombineExcels.py
@@ -36,17 +37,20 @@ def main():
         print(f"Thiếu file cho các trang: {missing}. Hãy chạy pipeline trước.")
         return
 
+    # Copy first page to preserve styles, then insert Page column
     first_path = os.path.join(args.input, str(pages[0]), f"{pages[0]}.xlsx")
     shutil.copy2(first_path, args.output)
     print(f"Trang {pages[0]} — sao chép làm nền -> {args.output}")
 
-    if len(pages) == 1:
-        print("Chỉ có một trang, hoàn thành.")
-        return
-
     wb_out = load_workbook(args.output)
     ws_out = wb_out.active
 
+    ws_out.insert_cols(1)
+    ws_out.cell(row=1, column=1).value = "Page"
+    for row in range(2, ws_out.max_row + 1):
+        ws_out.cell(row=row, column=1).value = pages[0]
+
+    # Append remaining pages
     for page in pages[1:]:
         path = os.path.join(args.input, str(page), f"{page}.xlsx")
         wb_in = load_workbook(path, data_only=True)
@@ -54,7 +58,7 @@ def main():
 
         row_count = 0
         for row in ws_in.iter_rows(min_row=2, values_only=True):  # skip header
-            ws_out.append(list(row))
+            ws_out.append([page] + list(row))
             row_count += 1
 
         print(f"Trang {page} — thêm {row_count} dòng")
