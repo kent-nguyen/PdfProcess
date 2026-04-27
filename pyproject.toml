@@ -9,8 +9,6 @@ requires-python = ">=3.13"
 dependencies = [
     "pdf2image (>=1.17.0,<2.0.0)",
     "opencv-python (>=4.10.0)",
-    "paddlepaddle (>=3.3.1,<4.0.0)",
-    "paddleocr (>=3.5.0,<4.0.0)",
     "openpyxl (>=3.1.0)",
     "easyocr (>=1.7.2,<2.0.0)"
 ]
