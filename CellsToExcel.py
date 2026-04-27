@@ -33,24 +33,31 @@ def cells_to_excel(page_dir, reader, column_allowlists):
         print("  Không tìm thấy ảnh ô nào.")
         return
 
+    # Detect a spurious empty first column: OCR the header cell (row 0, col 0)
+    # without an allowlist. If it returns blank, all real data columns are shifted
+    # right by 1 in the image, so we shift left by 1 when writing to Excel.
+    col_offset = 0
+    first_cell_path = cell_files.get((0, 0))
+    if first_cell_path and ocr_cell(reader, first_cell_path) == "":
+        col_offset = 1
+        print("  Phát hiện cột đầu tiên trống — bỏ qua cột 0, dịch trái 1 cột")
+
     wb = Workbook()
     ws = wb.active
 
     max_row = max(r for r, _ in cell_files)
     current_row = None
     for (row, col) in sorted(cell_files):
+        if col < col_offset:
+            continue  # skip the spurious empty column
         if row != current_row:
             current_row = row
             print(f"  Dòng {row}/{max_row}", end="\r", flush=True)
-        allowlist = column_allowlists.get(col) if row > 0 else None
+        logical_col = col - col_offset
+        allowlist = column_allowlists.get(logical_col) if row > 0 else None
         text = ocr_cell(reader, cell_files[(row, col)], allowlist=allowlist)
-        ws.cell(row=row + 1, column=col + 1, value=text)
+        ws.cell(row=row + 1, column=logical_col + 1, value=text)
     print(f"  Dòng {max_row}/{max_row} — hoàn thành")
-
-    # Drop the first column if every cell in it is blank (spurious border line)
-    first_col_values = [ws.cell(row=r, column=1).value for r in range(1, ws.max_row + 1)]
-    if all(v is None or str(v).strip() == "" for v in first_col_values):
-        ws.delete_cols(1)
 
     page_name = os.path.basename(page_dir)
     out_path = os.path.join(page_dir, f"raw_{page_name}.xlsx")
