@@ -13,9 +13,14 @@ def ocr_cell(reader, image_path, allowlist=None):
     result = reader.readtext(image_path, **kwargs)
     if not result:
         return ""
-    # Sort top-to-bottom then left-to-right so multi-line numbers (e.g. "2,300,000,000." / "00")
-    # are joined in reading order rather than arbitrary detection order.
-    result = sorted(result, key=lambda r: (r[0][0][1], r[0][0][0]))
+    # Sort top-to-bottom then left-to-right. Cluster detections that share roughly the
+    # same vertical band (within half the average box height) into the same row so that
+    # numbers like "35,700,000.00" — where EasyOCR splits "35" and "700,000.00" into
+    # two boxes whose Y-tops differ by a few pixels — still sort left-to-right.
+    heights = [abs(r[0][2][1] - r[0][0][1]) for r in result]
+    avg_h = sum(heights) / len(heights) if heights else 15
+    row_band = max(1, int(avg_h * 0.5))
+    result = sorted(result, key=lambda r: (r[0][0][1] // row_band, r[0][0][0]))
     return " ".join(item[1] for item in result).strip()
 
 
