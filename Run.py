@@ -48,6 +48,7 @@ def main():
     column_allowlists = getattr(bank_module, "COLUMN_ALLOWLISTS", {})
     formatters = getattr(bank_module, "FORMATTERS", [])
     fixers = getattr(bank_module, "FIXERS", [])
+    garbage_date_cols = getattr(bank_module, "GARBAGE_DATE_COLS", None)
     print(f"Ngân hàng: {args.bank} — {len(formatters)} bộ định dạng, {len(fixers)} bộ sửa lỗi")
 
     # Initialize EasyOCR reader once — model load is slow, reuse across all pages
@@ -81,7 +82,7 @@ def main():
             continue
         out_path = os.path.join(page_dir, f"{p}.xlsx")
         print(f"Đang xử lý trang {page} ({os.path.basename(raw_path)})...")
-        page_results[page] = refine_page(raw_path, out_path, formatters, fixers)
+        page_results[page] = refine_page(raw_path, out_path, formatters, fixers, garbage_date_cols)
 
     _print_summary(page_results)
 
