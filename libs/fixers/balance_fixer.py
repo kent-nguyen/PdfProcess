@@ -22,6 +22,10 @@ import os
 from openpyxl import load_workbook
 
 
+class NegativeBalanceError(Exception):
+    """Raised after a page is processed when one or more expected balances are negative."""
+
+
 def _try_remove_one_digit(balance: int, expected: int):
     """Return (corrected_int, position, removed_digit) if removing exactly one
     digit from balance yields expected, otherwise return None."""
@@ -110,6 +114,7 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=
     """
     DATA_START = 2
     page = _page_number(raw_path)
+    negative_rows = []  # collect all negative-expected rows; raise after processing
 
     # --- First data row: validate against previous page's last balance ---
     if raw_path is not None:
@@ -129,11 +134,11 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=
                    (credit is None or isinstance(credit, int)):
                     expected = prev_balance - (debit or 0) + (credit or 0)
                     if expected < 0:
-                        raise ValueError(
-                            f"Số dư kỳ vọng âm ({expected:,}) tại trang {page}, dòng {row}. "
-                            "Vui lòng kiểm tra và sửa thủ công."
+                        row_errors.setdefault(row, {})[col] = (
+                            f"Số dư kỳ vọng âm ({expected:,}) — cần sửa thủ công"
                         )
-                    if expected != balance:
+                        negative_rows.append((row, expected))
+                    elif expected != balance:
                         _apply_balance_fix(ws, row, col, balance, expected, row_errors, row_fixes)
 
     # --- Remaining rows: validate each row against the one above ---
@@ -159,11 +164,19 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=
 
         expected = prev_balance - (debit or 0) + (credit or 0)
         if expected < 0:
-            raise ValueError(
-                f"Số dư kỳ vọng âm ({expected:,}) tại trang {page}, dòng {row}. "
-                "Vui lòng kiểm tra và sửa thủ công."
+            row_errors.setdefault(row, {})[col] = (
+                f"Số dư kỳ vọng âm ({expected:,}) — cần sửa thủ công"
             )
+            negative_rows.append((row, expected))
+            continue
         if expected == balance:
             continue
 
         _apply_balance_fix(ws, row, col, balance, expected, row_errors, row_fixes)
+
+    if negative_rows:
+        detail = ", ".join(f"dòng {r} ({v:,})" for r, v in negative_rows)
+        raise NegativeBalanceError(
+            f"Trang {page}: số dư kỳ vọng âm tại {detail}. "
+            "File đã được lưu — vui lòng kiểm tra và sửa thủ công."
+        )

@@ -2,6 +2,7 @@ import os
 import argparse
 import importlib
 from openpyxl import load_workbook
+from libs.fixers.balance_fixer import NegativeBalanceError
 
 
 def find_raw_file(page_dir, page_num):
@@ -19,8 +20,12 @@ def refine_page(raw_path, out_path, formatters, fixers):
     for formatter in formatters:
         formatter(ws, row_errors, row_fixes=row_fixes)
 
+    negative_balance_error = None
     for fixer in fixers:
-        fixer(ws, row_fixes, row_errors, raw_path=raw_path)
+        try:
+            fixer(ws, row_fixes, row_errors, raw_path=raw_path)
+        except NegativeBalanceError as e:
+            negative_balance_error = e
 
     # Append Fixed / Error / Notes columns after the last data column
     fixed_col = ws.max_column + 1
@@ -42,6 +47,9 @@ def refine_page(raw_path, out_path, formatters, fixers):
             ws.cell(row=row, column=notes_col).value = "; ".join(str(n) for n in notes)
 
     wb.save(out_path)
+
+    if negative_balance_error:
+        raise negative_balance_error
 
     fixed_count = len(row_fixes)
     error_count = len(row_errors)
