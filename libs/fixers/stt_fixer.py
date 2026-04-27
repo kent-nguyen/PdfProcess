@@ -10,7 +10,7 @@ def _int_or_none(value):
         return None
 
 
-def fix_stt(ws, row_fixes, row_errors, col):
+def fix_stt(ws, row_fixes, row_errors, col, **_):
     """
     Fix empty or malformed cells in a sequential serial-number column.
 

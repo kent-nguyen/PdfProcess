@@ -20,7 +20,7 @@ def refine_page(raw_path, out_path, formatters, fixers):
         formatter(ws, row_errors)
 
     for fixer in fixers:
-        fixer(ws, row_fixes, row_errors)
+        fixer(ws, row_fixes, row_errors, raw_path=raw_path)
 
     # Append Fixed / Error / Notes columns after the last data column
     fixed_col = ws.max_column + 1

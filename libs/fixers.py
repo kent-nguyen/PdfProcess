@@ -15,7 +15,7 @@ def _int_or_none(value):
         return None
 
 
-def fix_stt(ws, row_fixes, col):
+def fix_stt(ws, row_fixes, col, **_):
     """
     Fix empty cells in a sequential serial-number column.
 
