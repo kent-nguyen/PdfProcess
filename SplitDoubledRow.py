@@ -31,7 +31,7 @@ def detect_split_y(cell_img):
     return int(np.argmax(search)) + margin
 
 
-def split_doubled_row(cells_dir, row_idx):
+def split_doubled_row(cells_dir, row_idx, manual_split_y=None):
     # Collect columns for this row
     prefix = f"row{row_idx:03d}_col"
     col_files = sorted(f for f in os.listdir(cells_dir) if f.startswith(prefix) and f.endswith(".png"))
@@ -61,12 +61,16 @@ def split_doubled_row(cells_dir, row_idx):
         raise IOError(f"Cannot read {first_cell_path}")
 
     cell_h = first_img.shape[0]
-    split_y = detect_split_y(first_img)
-    if split_y is None:
-        split_y = cell_h // 2
-        print(f"  No divider detected — splitting at midpoint y={split_y}")
+    if manual_split_y is not None:
+        split_y = manual_split_y
+        print(f"  Using manual split y={split_y} (cell height={cell_h})")
     else:
-        print(f"  Detected divider at y={split_y} (cell height={cell_h})")
+        split_y = detect_split_y(first_img)
+        if split_y is None:
+            split_y = cell_h // 2
+            print(f"  No divider detected — splitting at midpoint y={split_y}")
+        else:
+            print(f"  Detected divider at y={split_y} (cell height={cell_h})")
 
     # ── Step 2: shift rows (row_idx+1 … max_row) down by one, in reverse ─────
     print(f"  Renaming rows {row_idx + 1}–{max_row}  →  {row_idx + 2}–{max_row + 1}")
@@ -112,9 +116,15 @@ def main():
         required=True,
         help="0-based row index of the problematic doubled row, e.g. 19",
     )
+    parser.add_argument(
+        "--split-y",
+        type=int,
+        default=None,
+        help="Manual y pixel position to cut (overrides auto-detection), e.g. 45",
+    )
     args = parser.parse_args()
 
-    split_doubled_row(args.cells_dir, args.row)
+    split_doubled_row(args.cells_dir, args.row, manual_split_y=args.split_y)
 
 
 if __name__ == "__main__":
