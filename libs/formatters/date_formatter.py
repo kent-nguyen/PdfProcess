@@ -41,7 +41,7 @@ def _normalize_date(raw):
         return None
 
 
-def format_date(ws, row_errors, col):
+def format_date(ws, row_errors, col, **_):
     """
     Parse date text and store as an Excel date value with DD/MM/YYYY format.
     Cells that cannot be parsed are left untouched and logged to row_errors.

@@ -104,7 +104,7 @@ def _normalize(raw):
     return f"{dd}/{mm}/{yyyy} {hh}:{mi}:{ss}"
 
 
-def format_trans_date(ws, row_errors, col):
+def format_trans_date(ws, row_errors, col, **_):
     """
     Normalize datetime text to "dd/MM/yyyy HH:mm:ss" (Vietnamese locale).
     Cells that cannot be parsed are left untouched and logged to row_errors.

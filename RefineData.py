@@ -17,7 +17,7 @@ def refine_page(raw_path, out_path, formatters, fixers):
     row_fixes = {}   # {row: [note, ...]} — populated by fixers
 
     for formatter in formatters:
-        formatter(ws, row_errors)
+        formatter(ws, row_errors, row_fixes=row_fixes)
 
     for fixer in fixers:
         fixer(ws, row_fixes, row_errors, raw_path=raw_path)

@@ -1,4 +1,4 @@
-def format_int(ws, row_errors, col):
+def format_int(ws, row_errors, col, **_):
     """
     Convert column values from text to integer, silently skipping failures.
 

@@ -1,4 +1,4 @@
-def format_concat(ws, row_errors, col, as_text=False):
+def format_concat(ws, row_errors, col, as_text=False, **_):
     """
     Concatenate whitespace-separated OCR tokens into a single string.
     Silently skips empty cells. No error marking.

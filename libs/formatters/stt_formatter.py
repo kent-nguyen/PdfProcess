@@ -5,7 +5,7 @@ Populates row_errors when a value cannot be converted, so fixers can act on it.
 """
 
 
-def format_stt(ws, row_errors, col):
+def format_stt(ws, row_errors, col, **_):
     """
     Convert all STT column values from text to integer.
     On failure, records the bad value in row_errors and leaves the cell untouched.

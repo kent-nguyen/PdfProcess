@@ -1,4 +1,4 @@
-def format_description(ws, row_errors, col, corrections=()):
+def format_description(ws, row_errors, col, corrections=(), **_):
     """
     Normalize a free-text description column:
       1. Collapse all whitespace runs to a single space.
