@@ -72,6 +72,9 @@ FIXERS = [
     partial(fix_balance, debit_col=DEBIT_COL, credit_col=CREDIT_COL, col=BALANCE_COL),
 ]
 
+# Columns used by the garbage-tail detector (transaction datetime + effective date).
+GARBAGE_DATE_COLS = (TRANS_DATE_COL, DATE_COL)
+
 # Per-column OCR allowlists (0-based column index from cell image filenames).
 # Columns not listed here use unrestricted OCR.
 COLUMN_ALLOWLISTS = {

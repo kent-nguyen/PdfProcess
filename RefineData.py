@@ -3,6 +3,7 @@ import argparse
 import importlib
 from openpyxl import load_workbook
 from libs.fixers.balance_fixer import NegativeBalanceError
+from libs.garbage_detector import drop_garbage_tail
 
 
 def find_raw_file(page_dir, page_num):
@@ -10,9 +11,12 @@ def find_raw_file(page_dir, page_num):
     return path if os.path.exists(path) else None
 
 
-def refine_page(raw_path, out_path, formatters, fixers):
+def refine_page(raw_path, out_path, formatters, fixers, garbage_date_cols=None):
     wb = load_workbook(raw_path)
     ws = wb.active
+
+    if garbage_date_cols:
+        drop_garbage_tail(ws, *garbage_date_cols)
 
     row_errors = {}  # {row: {col: original_bad_value}} — populated by formatters, read by fixers
     row_fixes = {}   # {row: [note, ...]} — populated by fixers
@@ -99,6 +103,7 @@ def main():
     fixer_module = importlib.import_module(f"banks.{args.bank}")
     formatters = getattr(fixer_module, "FORMATTERS", [])
     fixers = getattr(fixer_module, "FIXERS", [])
+    garbage_date_cols = getattr(fixer_module, "GARBAGE_DATE_COLS", None)
     print(f"Ngân hàng: {args.bank} — đã tải {len(formatters)} bộ định dạng, {len(fixers)} bộ sửa lỗi")
 
     if args.page:
@@ -119,7 +124,7 @@ def main():
             continue
         out_path = os.path.join(page_dir, f"{page_num}.xlsx")
         print(f"Đang xử lý trang {page_num} ({os.path.basename(raw_path)})...")
-        page_results[page_num] = refine_page(raw_path, out_path, formatters, fixers)
+        page_results[page_num] = refine_page(raw_path, out_path, formatters, fixers, garbage_date_cols)
 
     _print_summary(page_results)
 
