@@ -9,25 +9,28 @@ Algorithm:
   2. Strip the trailing "00" (the fixed decimal cents).
   3. Fix two-zero thousand groups: any "00" sitting between two separators
      (e.g. ",00," or ",00.") has a dropped zero — restore it to "000".
-  4. Remove every remaining dot and comma (thousands/decimal separators).
-  5. Parse the remaining digit string as int.
+  4. Fix four-digit groups: a separator misread as a digit gets appended to a
+     thousand group, making it 4 digits (e.g. ",0003" where "3" is a misread ".").
+     Remove the extra digit by keeping only the first three (e.g. "0003" → "000").
+  5. Remove every remaining dot and comma (thousands/decimal separators).
+  6. Parse the remaining digit string as int.
 """
 import re
 
 
 def _normalize_amount(raw):
-    """Return (int_value, fix_note_or_None). fix_note is set when a dropped zero was restored."""
+    """Return (int_value, fix_note_or_None). fix_note is set when a correction was made."""
     s = "".join(raw.strip().split())  # reunite tokens, drop all spaces
     if s.endswith("00"):
         s = s[:-2]                    # strip fixed decimal cents
-    # Restore a dropped zero in any thousand group that OCR read as "00":
-    # lookbehind/lookahead don't consume the separators so all groups are
-    # found and fixed in a single pass (e.g. "5,00,00." → "5,000,000.").
-    fixed = re.sub(r'(?<=[,\.])00(?=[,\.])', '000', s)
-    fix_note = None
-    if fixed != s:
-        fix_note = f"Số tiền: khôi phục chữ số 0 bị thiếu (OCR: {raw.strip()!r})"
-    s = fixed.replace(".", "").replace(",", "")  # drop all separators
+    before_fixes = s
+    # Step 3: restore a dropped zero in any thousand group that OCR read as "00".
+    s = re.sub(r'(?<=[,\.])00(?=[,\.])', '000', s)
+    # Step 4: remove a spurious extra digit from any 4-digit group — the last
+    # digit is a separator (. or ,) that OCR misread as a numeral.
+    s = re.sub(r'(?<=[,\.])(\d{4})(?=[,\.]|$)', lambda m: m.group(1)[:3], s)
+    fix_note = f"Số tiền: đã sửa nhóm chữ số sai (OCR: {raw.strip()!r})" if s != before_fixes else None
+    s = s.replace(".", "").replace(",", "")  # drop all separators
 
     if not s or not s.isdigit():
         return None, None
