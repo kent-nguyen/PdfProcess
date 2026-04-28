@@ -35,10 +35,10 @@ def convert_pages(pages_arg=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert PDF pages to PNG images.")
     parser.add_argument(
-        "--pages",
+        "--page",
         type=str,
         default=None,
         help="Pages to convert, e.g. '1' or '1,3,5' or '2-5' or '1-3,7,10-12'. Omit to convert all pages.",
     )
     args = parser.parse_args()
-    convert_pages(args.pages)
+    convert_pages(args.page)
