@@ -39,6 +39,11 @@ def main():
         default="bidv",
         help="Bank format code (default: bidv).",
     )
+    parser.add_argument(
+        "--bottom",
+        action="store_true",
+        help="Detect deskew angle using only lines in the bottom 40%% of the image.",
+    )
     args = parser.parse_args()
 
     pages = parse_pages(args.page)
@@ -66,7 +71,7 @@ def main():
         convert_pages(p)
 
         _header(f"Step 2/5 — Deskew           (page {p})")
-        deskew_page(page)
+        deskew_page(page, use_bottom=args.bottom)
 
         _header(f"Step 3/5 — SplitTableCells  (page {p})")
         img_path = os.path.join(page_dir, f"{p}.png")
