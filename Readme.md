@@ -15,6 +15,8 @@ python CombineExcels.py
 
 # Chạy từng bước thủ công cho một trang
 python ConvertToImages.py --pages 105
+# Chỉnh độ nghiêng ảnh (nếu cần)
+python Deskew.py --page 105
 # Cắt hình ra thành các ô
 python SplitTableCells.py --page 105
 # Chuyển ô thành file raw_105.png
@@ -44,7 +46,7 @@ poetry install
 
 ## Quy trình làm việc
 
-Có thể chạy **toàn bộ bước 1–4 một lần** bằng `Run.py`.
+Có thể chạy **toàn bộ bước 1–5 một lần** bằng `Run.py`.
 
 ```
 Source.pdf
@@ -52,18 +54,21 @@ Source.pdf
     ▼ (1) ConvertToImages.py
 Pages/<trang>/<trang>.png
     │
-    ▼ (2) SplitTableCells.py
+    ▼ (2) Deskew.py
+Pages/<trang>/<trang>.png  (ghi đè nếu ảnh bị nghiêng)
+    │
+    ▼ (3) SplitTableCells.py
 Pages/<trang>/Cells/row000_col000.png  …
     │
     │   [Tuỳ chọn] SplitDoubledRow.py  ← sửa thủ công nếu có dòng kép
     │
-    ▼ (3) CellsToExcel.py
+    ▼ (4) CellsToExcel.py
 Pages/<trang>/raw_<trang>.xlsx
     │
-    ▼ (4) RefineData.py
+    ▼ (5) RefineData.py
 Pages/<trang>/<trang>.xlsx
     │
-    ▼ (5) CombineExcels.py
+    ▼ (6) CombineExcels.py
 Output.xlsx
 ```
 
@@ -102,7 +107,21 @@ python ConvertToImages.py            # chuyển tất cả các trang
 
 ---
 
-### `SplitTableCells.py` — Bước 2: Phát hiện bảng và cắt ô
+### `Deskew.py` — Bước 2: Chỉnh độ nghiêng ảnh
+
+Phát hiện và chỉnh độ nghiêng của ảnh trang bằng cách tìm đường thẳng ngang qua Hough Transform, rồi xoay ảnh về đúng góc. Ghi đè trực tiếp lên ảnh gốc nếu phát hiện nghiêng.
+
+Đầu ra: `Pages/<trang>/<trang>.png` (ghi đè nếu ảnh bị nghiêng)
+
+```bash
+python Deskew.py --page 3
+python Deskew.py               # xử lý tất cả các trang hiện có
+python Deskew.py --page 3 --debug  # lưu thêm ảnh binary và edges để kiểm tra
+```
+
+---
+
+### `SplitTableCells.py` — Bước 3: Phát hiện bảng và cắt ô
 
 Phân tích ảnh PNG để tìm các đường kẻ ngang/dọc của bảng, sau đó cắt từng ô thành ảnh riêng biệt.
 
@@ -131,7 +150,7 @@ python SplitDoubledRow.py --cells-dir Pages/97/Cells --row 19
 
 ---
 
-### `CellsToExcel.py` — Bước 3: OCR ô → Excel thô
+### `CellsToExcel.py` — Bước 4: OCR ô → Excel thô
 
 Dùng EasyOCR để đọc chữ trong từng ảnh ô, ghi kết quả vào file Excel thô.
 
@@ -146,7 +165,7 @@ Mỗi cột được OCR với bộ ký tự cho phép riêng (ví dụ: cột s
 
 ---
 
-### `RefineData.py` — Bước 4: Chuẩn hoá và sửa lỗi dữ liệu
+### `RefineData.py` — Bước 5: Chuẩn hoá và sửa lỗi dữ liệu
 
 Đọc file Excel thô, áp dụng các bộ định dạng và sửa lỗi theo cấu hình ngân hàng:
 
@@ -178,13 +197,13 @@ python CombineExcels.py --input Pages --output Output.xlsx
 
 ### Hình bị nghiêng
 
-Nếu ảnh trang bị nghiêng, `SplitTableCells.py` sẽ không phát hiện đúng đường kẻ bảng và cắt ô sai. Cần yêu cầu Claude xoay ảnh trước khi chạy bước 2:
+Nếu ảnh trang bị nghiêng, `SplitTableCells.py` sẽ không phát hiện đúng đường kẻ bảng và cắt ô sai. Chạy `Deskew.py` để chỉnh tự động:
 
-```
-Please help rotate the image in Pages/95/95.png to make the table inside aligned in right angle
+```bash
+python Deskew.py --page 95
 ```
 
-Sau khi ảnh đã thẳng, chạy lại từ bước 2 cho trang đó:
+Thêm `--debug` để lưu ảnh binary và edges ra kiểm tra nếu kết quả chưa đúng. Sau khi ảnh đã thẳng, chạy lại từ bước 3 cho trang đó:
 
 ```bash
 python SplitTableCells.py --page 95
