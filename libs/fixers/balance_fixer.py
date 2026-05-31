@@ -20,6 +20,9 @@ processing page 400).  Pass raw_path so the fixer can locate that file.
 import os
 
 from openpyxl import load_workbook
+from openpyxl.styles import PatternFill
+
+_NEGATIVE_FILL = PatternFill(start_color="FFC000", end_color="FFC000", fill_type="solid")
 
 
 class NegativeBalanceError(Exception):
@@ -103,7 +106,7 @@ def _page_number(raw_path):
         return None
 
 
-def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=None):
+def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=None, lenient=False):
     """
     Args:
         debit_col:  1-based column index of the Debit column.
@@ -111,10 +114,13 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=
         col:        1-based column index of the Balance column.
         raw_path:   Path to the current page's raw Excel file.  When supplied,
                     the first data row is validated against the previous page.
+        lenient:    When True, negative-expected rows are flagged and highlighted
+                    instead of raising NegativeBalanceError.  Use for banks where
+                    the OCR balance is more reliable than debit/credit (e.g. VIB).
     """
     DATA_START = 2
     page = _page_number(raw_path)
-    negative_rows = []  # collect all negative-expected rows; raise after processing
+    negative_rows = []  # collect all negative-expected rows; raise after processing (strict mode)
 
     # --- First data row: validate against previous page's last balance ---
     # Page 1 has no preceding page, so its opening balance cannot be verified.
@@ -138,9 +144,18 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=
                         row_errors.setdefault(row, {})[col] = (
                             f"Số dư kỳ vọng âm ({expected:,}) — cần sửa thủ công"
                         )
-                        negative_rows.append((row, expected))
+                        if lenient:
+                            ws.cell(row=row, column=col).fill = _NEGATIVE_FILL
+                        else:
+                            negative_rows.append((row, expected))
                     elif expected != balance:
-                        _apply_balance_fix(ws, row, col, balance, expected, row_errors, row_fixes)
+                        if lenient:
+                            row_errors.setdefault(row, {})[col] = (
+                                f"Số dư không khớp: kỳ vọng {expected:,}, giữ nguyên OCR {balance:,}"
+                            )
+                            ws.cell(row=row, column=col).fill = _NEGATIVE_FILL
+                        else:
+                            _apply_balance_fix(ws, row, col, balance, expected, row_errors, row_fixes)
 
     # --- Remaining rows: validate each row against the one above ---
     for row in range(DATA_START + 1, ws.max_row + 1):
@@ -168,12 +183,21 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=
             row_errors.setdefault(row, {})[col] = (
                 f"Số dư kỳ vọng âm ({expected:,}) — cần sửa thủ công"
             )
-            negative_rows.append((row, expected))
+            if lenient:
+                ws.cell(row=row, column=col).fill = _NEGATIVE_FILL
+            else:
+                negative_rows.append((row, expected))
             continue
         if expected == balance:
             continue
 
-        _apply_balance_fix(ws, row, col, balance, expected, row_errors, row_fixes)
+        if lenient:
+            row_errors.setdefault(row, {})[col] = (
+                f"Số dư không khớp: kỳ vọng {expected:,}, giữ nguyên OCR {balance:,}"
+            )
+            ws.cell(row=row, column=col).fill = _NEGATIVE_FILL
+        else:
+            _apply_balance_fix(ws, row, col, balance, expected, row_errors, row_fixes)
 
     if negative_rows:
         detail = ", ".join(f"dòng {r} ({v:,})" for r, v in negative_rows)
