@@ -14,7 +14,7 @@ python Run.py --bank bidv --pages 161-180
 python CombineExcels.py
 
 # Chạy từng bước thủ công cho một trang
-python ConvertToImages.py --pages 105
+python ConvertToImages.py --page 105
 # Chỉnh độ nghiêng ảnh (nếu cần)
 python Deskew.py --page 105
 # Cắt hình ra thành các ô
