@@ -117,7 +117,8 @@ def fix_balance(ws, row_fixes, row_errors, debit_col, credit_col, col, raw_path=
     negative_rows = []  # collect all negative-expected rows; raise after processing
 
     # --- First data row: validate against previous page's last balance ---
-    if raw_path is not None:
+    # Page 1 has no preceding page, so its opening balance cannot be verified.
+    if raw_path is not None and page != 1:
         prev_balance = _prev_page_last_balance(raw_path, col)
         if prev_balance is not None:
             row = DATA_START
