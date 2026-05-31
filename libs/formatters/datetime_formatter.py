@@ -31,9 +31,11 @@ def _extract_date(s):
     if len(s) < 10:
         return None
     dd, mm, yyyy = s[0:2], s[3:5], s[6:10]
-    if dd.isdigit() and mm.isdigit() and yyyy.isdigit():
-        return dd, mm, yyyy
-    return None
+    if not (dd.isdigit() and mm.isdigit() and yyyy.isdigit()):
+        return None
+    if not (1 <= int(dd) <= 31 and 1 <= int(mm) <= 12 and int(yyyy) >= 2000):
+        return None
+    return dd, mm, yyyy
 
 
 def _extract_time(s):
@@ -120,7 +122,10 @@ def format_trans_date(ws, row_errors, col, **_):
             continue
         normalized = _normalize(str(cell.value).strip())
         if normalized:
-            cell.value = datetime.strptime(normalized, "%d/%m/%Y %H:%M:%S")
-            cell.number_format = EXCEL_DATETIME_FORMAT
+            try:
+                cell.value = datetime.strptime(normalized, "%d/%m/%Y %H:%M:%S")
+                cell.number_format = EXCEL_DATETIME_FORMAT
+            except ValueError:
+                row_errors.setdefault(row, {})[col] = str(cell.value)
         else:
             row_errors.setdefault(row, {})[col] = str(cell.value)
