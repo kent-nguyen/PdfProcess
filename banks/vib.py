@@ -36,7 +36,7 @@ FORMATTERS = [
 ]
 
 FIXERS = [
-    partial(fix_balance, debit_col=DEBIT_COL, credit_col=CREDIT_COL, col=BALANCE_COL),
+    partial(fix_balance, debit_col=DEBIT_COL, credit_col=CREDIT_COL, col=BALANCE_COL, lenient=True),
 ]
 
 # Columns used by the garbage-tail detector (single datetime column).
