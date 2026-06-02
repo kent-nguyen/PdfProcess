@@ -41,31 +41,45 @@ def cells_to_excel(page_dir, reader, column_allowlists):
         print("  Không tìm thấy ảnh ô nào.")
         return
 
-    # Detect a spurious empty first column: OCR the header cell (row 0, col 0)
-    # without an allowlist. If it returns blank, all real data columns are shifted
-    # right by 1 in the image, so we shift left by 1 when writing to Excel.
+    max_row = max(r for r, _ in cell_files)
+    max_col = max(c for _, c in cell_files)
+
+    # Detect a spurious empty first row by sampling 5 columns near the middle of
+    # row 0. All sampled cells must be blank before we skip the row.
+    row_offset = 0
+    mid_col = max_col // 2
+    check_cols = [c for c in range(max(0, mid_col - 2), min(max_col + 1, mid_col + 3))
+                  if cell_files.get((0, c))]
+    if check_cols and all(ocr_cell(reader, cell_files[(0, c)]) == "" for c in check_cols):
+        row_offset = 1
+        print("  Phát hiện hàng đầu tiên trống — bỏ qua hàng 0, dịch lên 1 hàng")
+
+    # Detect a spurious empty first column by sampling 5 data rows near the middle
+    # of the page. All sampled cells must be blank before we shift columns left.
     col_offset = 0
-    first_cell_path = cell_files.get((0, 0))
-    if first_cell_path and ocr_cell(reader, first_cell_path) == "":
+    mid_row = max_row // 2
+    check_rows = [r for r in range(max(row_offset + 1, mid_row - 2), min(max_row + 1, mid_row + 3))
+                  if cell_files.get((r, 0))]
+    if check_rows and all(ocr_cell(reader, cell_files[(r, 0)]) == "" for r in check_rows):
         col_offset = 1
         print("  Phát hiện cột đầu tiên trống — bỏ qua cột 0, dịch trái 1 cột")
 
     wb = Workbook()
     ws = wb.active
-
-    max_row = max(r for r, _ in cell_files)
+    effective_max = max_row - row_offset
     current_row = None
     for (row, col) in sorted(cell_files):
-        if col < col_offset:
-            continue  # skip the spurious empty column
+        if row < row_offset or col < col_offset:
+            continue  # skip spurious empty first row / column
         if row != current_row:
             current_row = row
-            print(f"  Dòng {row}/{max_row}", end="\r", flush=True)
+            print(f"  Dòng {row - row_offset}/{effective_max}", end="\r", flush=True)
         logical_col = col - col_offset
-        allowlist = column_allowlists.get(logical_col) if row > 0 else None
+        logical_row = row - row_offset
+        allowlist = column_allowlists.get(logical_col) if logical_row > 0 else None
         text = ocr_cell(reader, cell_files[(row, col)], allowlist=allowlist)
-        ws.cell(row=row + 1, column=logical_col + 1, value=text)
-    print(f"  Dòng {max_row}/{max_row} — hoàn thành")
+        ws.cell(row=logical_row + 1, column=logical_col + 1, value=text)
+    print(f"  Dòng {effective_max}/{effective_max} — hoàn thành")
 
     # Remove rows where the first 4 data columns are all empty (skip header row 1).
     rows_to_delete = []
