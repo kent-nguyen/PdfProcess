@@ -2,7 +2,7 @@ import os
 import argparse
 import importlib
 from openpyxl import load_workbook
-from libs.fixers.balance_fixer import NegativeBalanceError
+from libs.fixers.balance_fixer import NegativeBalanceError, fix_balance
 from libs.garbage_detector import drop_garbage_tail
 
 
@@ -98,6 +98,8 @@ def main():
                         help="Process only this page number; omit to process all pages")
     parser.add_argument("--bank", default="bidv",
                         help="Bank format to use — selects fixers/<bank>.py (default: bidv)")
+    parser.add_argument("--no-balance-fix", action="store_true", dest="no_balance_fix",
+                        help="Skip balance fixer — keep OCR numbers as-is.")
     args = parser.parse_args()
 
     fixer_module = importlib.import_module(f"banks.{args.bank}")
@@ -124,7 +126,8 @@ def main():
             continue
         out_path = os.path.join(page_dir, f"{page_num}.xlsx")
         print(f"Đang xử lý trang {page_num} ({os.path.basename(raw_path)})...")
-        page_results[page_num] = refine_page(raw_path, out_path, formatters, fixers, garbage_date_cols)
+        active_fixers = [f for f in fixers if getattr(f, "func", f) is not fix_balance] if args.no_balance_fix else fixers
+        page_results[page_num] = refine_page(raw_path, out_path, formatters, active_fixers, garbage_date_cols)
 
     _print_summary(page_results)
 

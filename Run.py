@@ -16,11 +16,16 @@ warnings.filterwarnings("ignore", message=".*pin_memory.*")
 import easyocr
 
 from libs.page_range import parse_pages
+from libs.fixers.balance_fixer import fix_balance
 from ConvertToImages import convert_pages
 from Deskew import deskew_page
 from SplitTableCells import split_table_cells
 from CellsToExcel import cells_to_excel
 from RefineData import find_raw_file, refine_page, _print_summary
+
+
+def _without_balance_fixer(fixers):
+    return [f for f in fixers if getattr(f, "func", f) is not fix_balance]
 
 
 def _header(label):
@@ -44,6 +49,12 @@ def main():
         action="store_true",
         help="Detect deskew angle using only lines in the bottom 40%% of the image.",
     )
+    parser.add_argument(
+        "--no-balance-fix",
+        action="store_true",
+        dest="no_balance_fix",
+        help="Skip balance fixer — keep OCR numbers as-is.",
+    )
     args = parser.parse_args()
 
     pages = parse_pages(args.page)
@@ -55,7 +66,8 @@ def main():
     formatters = getattr(bank_module, "FORMATTERS", [])
     fixers = getattr(bank_module, "FIXERS", [])
     garbage_date_cols = getattr(bank_module, "GARBAGE_DATE_COLS", None)
-    print(f"Ngân hàng: {args.bank} — {len(formatters)} bộ định dạng, {len(fixers)} bộ sửa lỗi")
+    print(f"Ngân hàng: {args.bank} — {len(formatters)} bộ định dạng, {len(fixers)} bộ sửa lỗi" +
+          (" (balance fixer TẮT)" if args.no_balance_fix else ""))
 
     # Initialize EasyOCR reader once — model load is slow, reuse across all pages
     print("Đang khởi tạo EasyOCR reader...")
@@ -91,7 +103,8 @@ def main():
             continue
         out_path = os.path.join(page_dir, f"{p}.xlsx")
         print(f"Đang xử lý trang {page} ({os.path.basename(raw_path)})...")
-        page_results[page] = refine_page(raw_path, out_path, formatters, fixers, garbage_date_cols)
+        active_fixers = _without_balance_fixer(fixers) if args.no_balance_fix else fixers
+        page_results[page] = refine_page(raw_path, out_path, formatters, active_fixers, garbage_date_cols)
 
     _print_summary(page_results)
 
