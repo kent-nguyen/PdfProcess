@@ -98,8 +98,8 @@ def main():
                         help="Process only this page number; omit to process all pages")
     parser.add_argument("--bank", default="bidv",
                         help="Bank format to use — selects fixers/<bank>.py (default: bidv)")
-    parser.add_argument("--no-balance-fix", action="store_true", dest="no_balance_fix",
-                        help="Skip balance fixer — keep OCR numbers as-is.")
+    parser.add_argument("--fix-balance", action="store_true", dest="fix_balance",
+                        help="Run the balance fixer — recalculate balance from debit/credit columns.")
     args = parser.parse_args()
 
     fixer_module = importlib.import_module(f"banks.{args.bank}")
@@ -126,7 +126,7 @@ def main():
             continue
         out_path = os.path.join(page_dir, f"{page_num}.xlsx")
         print(f"Đang xử lý trang {page_num} ({os.path.basename(raw_path)})...")
-        active_fixers = [f for f in fixers if getattr(f, "func", f) is not fix_balance] if args.no_balance_fix else fixers
+        active_fixers = fixers if args.fix_balance else [f for f in fixers if getattr(f, "func", f) is not fix_balance]
         page_results[page_num] = refine_page(raw_path, out_path, formatters, active_fixers, garbage_date_cols)
 
     _print_summary(page_results)

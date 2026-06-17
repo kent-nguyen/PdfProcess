@@ -51,10 +51,10 @@ def main():
         help="Detect deskew angle using only lines in the bottom 40%% of the image.",
     )
     parser.add_argument(
-        "--no-balance-fix",
+        "--fix-balance",
         action="store_true",
-        dest="no_balance_fix",
-        help="Skip balance fixer — keep OCR numbers as-is.",
+        dest="fix_balance",
+        help="Run the balance fixer — recalculate balance from debit/credit columns.",
     )
     args = parser.parse_args()
 
@@ -68,7 +68,7 @@ def main():
     fixers = getattr(bank_module, "FIXERS", [])
     garbage_date_cols = getattr(bank_module, "GARBAGE_DATE_COLS", None)
     print(f"Ngân hàng: {args.bank} — {len(formatters)} bộ định dạng, {len(fixers)} bộ sửa lỗi" +
-          (" (balance fixer TẮT)" if args.no_balance_fix else ""))
+          (" (balance fixer BẬT)" if args.fix_balance else " (balance fixer TẮT)"))
 
     # Initialize EasyOCR reader once — model load is slow, reuse across all pages
     print("Đang khởi tạo EasyOCR reader...")
@@ -107,7 +107,7 @@ def main():
             continue
         out_path = os.path.join(page_dir, f"{p}.xlsx")
         print(f"Đang xử lý trang {page} ({os.path.basename(raw_path)})...")
-        active_fixers = _without_balance_fixer(fixers) if args.no_balance_fix else fixers
+        active_fixers = fixers if args.fix_balance else _without_balance_fixer(fixers)
         page_results[page] = refine_page(raw_path, out_path, formatters, active_fixers, garbage_date_cols)
 
     _print_summary(page_results)
