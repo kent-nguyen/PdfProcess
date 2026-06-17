@@ -13,6 +13,8 @@ Algorithm:
      separator are unambiguously a decimal suffix — real or OCR-misread.
   3. Fix two-zero thousand groups: any "00" sitting between two separators
      (e.g. ",00," or ",00.") has a dropped zero — restore it to "000".
+  3b. OCR dropped the decimal point — the last thousand group has 5 digits ending
+     in "00" instead of 3 (e.g. ",19400" where "." between "194" and "00" was missed).
   4. Fix four-digit groups: a separator misread as a digit gets appended to a
      thousand group, making it 4 digits (e.g. ",0003" where "3" is a misread ".").
      Remove the extra digit by keeping only the first three (e.g. "0003" → "000").
@@ -42,6 +44,9 @@ def _normalize_amount(raw):
     before_fixes = s
     # Step 3: restore a dropped zero in any thousand group that OCR read as "00".
     s = re.sub(r'(?<=[,\.])00(?=[,\.]|$)', '000', s)
+    # Step 3b: OCR dropped the decimal point — the last thousand group has 5 digits
+    # ending in "00" instead of 3 (e.g. ",19400" where "." between "194" and "00" was missed).
+    s = re.sub(r'(?<=[,.])(\d{3})00$', r'\1', s)
     # Step 4: remove a spurious extra digit from any 4-digit group — the last
     # digit is a separator (. or ,) that OCR misread as a numeral.
     s = re.sub(r'(?<=[,\.])(\d{4})(?=[,\.]|$)', lambda m: m.group(1)[:3], s)
