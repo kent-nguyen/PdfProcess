@@ -26,8 +26,8 @@ def convert_pages(pages_arg=None):
         folder = os.path.join("Pages", str(page_num))
         os.makedirs(folder, exist_ok=True)
         page = page.convert("L")                          # grayscale — B&W doc needs no colour
-        page = ImageOps.autocontrast(page, cutoff=1)      # stretch histogram, ignore 1% outliers
-        page = page.filter(ImageFilter.UnsharpMask(radius=1, percent=150, threshold=3))
+        page = ImageOps.autocontrast(page, cutoff=2)      # stretch histogram, ignore 2% outliers
+        page = page.filter(ImageFilter.UnsharpMask(radius=1, percent=60, threshold=5))
         page.save(os.path.join(folder, f"{page_num}.png"), "PNG")
         print(f"Đã lưu trang {page_num}")
 

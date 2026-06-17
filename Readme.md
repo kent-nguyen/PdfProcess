@@ -14,15 +14,15 @@ python Run.py --bank bidv --page 161-180
 python CombineExcels.py
 
 # Chạy từng bước thủ công cho một trang
-python ConvertToImages.py --page 105
+python ConvertToImages.py --page 1
 # Chỉnh độ nghiêng ảnh (nếu cần)
-python Deskew.py --page 105
+python Deskew.py --page 1
 # Cắt hình ra thành các ô
-python SplitTableCells.py --page 105
+python SplitTableCells.py --page 1
 # Chuyển ô thành file raw_105.png
-python CellsToExcel.py --bank bidv --page 105
-# Đọc file raw và xuất ra file 105.png
-python RefineData.py --bank bidv --page 103
+python CellsToExcel.py --bank bidv --page 1
+# Đọc file raw và xuất ra file 1.png
+python RefineData.py --bank bidv --page 1
 
 # Tách dòng kép thủ công (chỉ định thư mục Cells, dòng bị kép, và vị trí cắt Y)
 python SplitDoubledRow.py --cells-dir .\Pages\136\Cells\ --row 5 --split-y 162
@@ -85,10 +85,10 @@ python Run.py --page 1-5 --bank bidv
 python Run.py --page 1,3,7-10 --bank bidv
 ```
 
-| Tham số   | Mặc định     | Mô tả                                               |
-| --------- | ------------ | --------------------------------------------------- |
+| Tham số  | Mặc định     | Mô tả                                               |
+| -------- | ------------ | --------------------------------------------------- |
 | `--page` | _(bắt buộc)_ | Trang cần xử lý: `1`, `1,3,5`, `2-5`, `1-3,7,10-12` |
-| `--bank`  | `bidv`       | Mã ngân hàng, chọn cấu hình từ `banks/<bank>.py`    |
+| `--bank` | `bidv`       | Mã ngân hàng, chọn cấu hình từ `banks/<bank>.py`    |
 
 ---
 

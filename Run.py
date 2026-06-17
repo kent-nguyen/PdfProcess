@@ -19,6 +19,7 @@ from libs.page_range import parse_pages
 from libs.fixers.balance_fixer import fix_balance
 from ConvertToImages import convert_pages
 from Deskew import deskew_page
+from BoldenLines import bolden_page
 from SplitTableCells import split_table_cells
 from CellsToExcel import cells_to_excel
 from RefineData import find_raw_file, refine_page, _print_summary
@@ -82,21 +83,24 @@ def main():
         _header(f"Step 1/5 — ConvertToImages  (page {p})")
         convert_pages(p)
 
-        _header(f"Step 2/5 — Deskew           (page {p})")
+        _header(f"Step 2/6 — Deskew           (page {p})")
         deskew_page(page, use_bottom=args.bottom)
 
-        _header(f"Step 3/5 — SplitTableCells  (page {p})")
+        _header(f"Step 3/6 — BoldenLines      (page {p})")
+        bolden_page(page)
+
+        _header(f"Step 4/6 — SplitTableCells  (page {p})")
         img_path = os.path.join(page_dir, f"{p}.png")
         cells_dir = os.path.join(page_dir, "Cells")
         print(f"Đang xử lý trang {page}...")
         count = split_table_cells(img_path, cells_dir)
         print(f"  Đã trích xuất {count} ô -> {cells_dir}")
 
-        _header(f"Step 4/5 — CellsToExcel     (page {p})")
+        _header(f"Step 5/6 — CellsToExcel     (page {p})")
         print(f"Đang xử lý trang {page}...")
         cells_to_excel(page_dir, reader, column_allowlists)
 
-        _header(f"Step 5/5 — RefineData        (page {p})")
+        _header(f"Step 6/6 — RefineData        (page {p})")
         raw_path = find_raw_file(page_dir, page)
         if not raw_path:
             print(f"  Không tìm thấy file Excel thô trong {page_dir}, bỏ qua.")

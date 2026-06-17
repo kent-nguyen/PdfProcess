@@ -106,6 +106,71 @@ def _normalize(raw):
     return f"{dd}/{mm}/{yyyy} {hh}:{mi}:{ss}"
 
 
+def _normalize_ampm(raw):
+    """Like _normalize but strips a trailing AM/PM token and converts to 24-hour."""
+    tokens = raw.strip().split()
+
+    ampm = None
+    if tokens and tokens[-1].upper() in ('AM', 'PM'):
+        ampm = tokens[-1].upper()
+        tokens = tokens[:-1]
+
+    if len(tokens) >= 2 and len(tokens[0]) < 10:
+        date_raw = tokens[0] + tokens[1]
+        time_tokens = tokens[2:]
+    elif len(tokens) >= 1:
+        date_raw = tokens[0]
+        time_tokens = tokens[1:]
+    else:
+        return None
+
+    time_raw = " ".join(time_tokens)
+
+    date_parts = _extract_date(date_raw)
+    time_parts = _extract_time(time_raw)
+
+    if not date_parts or not time_parts:
+        return None
+
+    dd, mm, yyyy = date_parts
+    hh, mi, ss = time_parts
+
+    if ampm:
+        h = int(hh)
+        if ampm == 'PM' and h != 12:
+            h += 12
+        elif ampm == 'AM' and h == 12:
+            h = 0
+        hh = str(h).zfill(2)
+
+    return f"{dd}/{mm}/{yyyy} {hh}:{mi}:{ss}"
+
+
+def format_trans_date_ampm(ws, row_errors, col, **_):
+    """
+    Normalize datetime text with 12-hour AM/PM suffix to "dd/MM/yyyy HH:mm:ss".
+    Cells that cannot be parsed are left untouched and logged to row_errors.
+
+    Args:
+        col: 1-based column index of the Trans Date column.
+    """
+    DATA_START = 2
+
+    for row in range(DATA_START, ws.max_row + 1):
+        cell = ws.cell(row=row, column=col)
+        if cell.value is None:
+            continue
+        normalized = _normalize_ampm(str(cell.value).strip())
+        if normalized:
+            try:
+                cell.value = datetime.strptime(normalized, "%d/%m/%Y %H:%M:%S")
+                cell.number_format = EXCEL_DATETIME_FORMAT
+            except ValueError:
+                row_errors.setdefault(row, {})[col] = str(cell.value)
+        else:
+            row_errors.setdefault(row, {})[col] = str(cell.value)
+
+
 def format_trans_date(ws, row_errors, col, **_):
     """
     Normalize datetime text to "dd/MM/yyyy HH:mm:ss" (Vietnamese locale).
